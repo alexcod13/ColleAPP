@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neuro-Atlas Interactif : Objectif Major</title>
+  
+  <!-- Chargement de Tailwind CSS pour le style -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Chargement de React et ReactDOM (sans compilation) -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Chargement de Babel pour comprendre le code JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    /* Style pour la barre de défilement personnalisée */
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 20px; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-200 antialiased selection:bg-indigo-500 selection:text-white">
+  
+  <div id="root"></div>
+
+  <!-- Script principal contenant toute l'application -->
+  <script type="text/babel">
+    const { useState } = React;
+
+    // --- ICONES INTAGREES (Substitut autonome de lucide-react) ---
+    const IconWrapper = ({ children, className }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        {children}
+      </svg>
+    );
+
+    const Brain = ({ className }) => <IconWrapper className={className}><path d="M9.5 2h5"/><path d="M16 2.5a4 4 0 0 1 1 7.5 4 4 0 0 1-1 7.5v2a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2a4 4 0 0 1-1-7.5 4 4 0 0 1 1-7.5"/><path d="M12 2v20"/><path d="M12 7.5A2.5 2.5 0 0 0 9.5 5h-1A2.5 2.5 0 0 0 6 7.5v1A2.5 2.5 0 0 0 8.5 11"/><path d="M12 16.5A2.5 2.5 0 0 0 9.5 19h-1A2.5 2.5 0 0 0 6 16.5v-1A2.5 2.5 0 0 0 8.5 13"/><path d="M12 7.5A2.5 2.5 0 0 1 14.5 5h1A2.5 2.5 0 0 1 18 7.5v1A2.5 2.5 0 0 1 15.5 11"/><path d="M12 16.5A2.5 2.5 0 0 1 14.5 19h1A2.5 2.5 0 0 1 18 16.5v-1A2.5 2.5 0 0 1 15.5 13"/></IconWrapper>;
+    const Activity = ({ className }) => <IconWrapper className={className}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></IconWrapper>;
+    const Target = ({ className }) => <IconWrapper className={className}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></IconWrapper>;
+    const AlertTriangle = ({ className }) => <IconWrapper className={className}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></IconWrapper>;
+    const BookOpen = ({ className }) => <IconWrapper className={className}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></IconWrapper>;
+    const UserCircle = ({ className }) => <IconWrapper className={className}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></IconWrapper>;
+    const CheckCircle2 = ({ className }) => <IconWrapper className={className}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></IconWrapper>;
+    const XCircle = ({ className }) => <IconWrapper className={className}><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></IconWrapper>;
+    const GitFork = ({ className }) => <IconWrapper className={className}><circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9"/><path d="M12 12v3"/></IconWrapper>;
+    const Info = ({ className }) => <IconWrapper className={className}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></IconWrapper>;
+    const Layers = ({ className }) => <IconWrapper className={className}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/></IconWrapper>;
+
+
+    // --- DATA: NERFS CRÂNIENS ---
+    const nervesData = [
+      { id: "I", name: "Nerf Olfactif", type: "Sensitif pur", origin: "Émanation du Télencéphale. Naît des cellules olfactives de la muqueuse nasale (tache jaune), traverse la lame criblée de l'ethmoïde et rejoint le bulbe olfactif situé sur la face inférieure du lobe frontal (sillon olfactif).", function: "Odorat (olfaction).", trap: "PIÈGE DE COURS : Ce n'est PAS un vrai nerf périphérique ! C'est une extension directe du Système Nerveux Central (SNC). Ses fibres possèdent une gaine de myéline de type central (produite par les oligodendrocytes, pas par les cellules de Schwann). Il n'a aucune origine sur le Tronc Cérébral." },
+      { id: "II", name: "Nerf Optique", type: "Sensitif pur", origin: "Émanation du Diencéphale. Naît des cellules ganglionnaires de la rétine. Les deux nerfs optiques cheminent vers l'arrière et fusionnent pour former le chiasma optique.", function: "Vision.", trap: "PIÈGE : Comme le nerf I, c'est une extension du SNC (myéline centrale). Au niveau du chiasma optique, il se produit une décussation PARTIELLE : seules les fibres issues des hémi-rétines nasales croisent la ligne médiane. Les fibres des hémi-rétines temporales restent homolatérales." },
+      { id: "III", name: "Nerf Oculomoteur", type: "Moteur + Parasympathique", origin: "Origine apparente : Mésencéphale, à sa face ANTÉRIEURE, au niveau de la fosse interpédonculaire (entre les deux pédoncules cérébraux).", function: "Motricité extrinsèque de l'œil (droit supérieur, inférieur, médial, oblique inférieur, releveur de la paupière). Motricité intrinsèque (parasympathique) : contraction de la pupille (Myosis) via le muscle sphincter de la pupille, et accommodation via le muscle ciliaire.", trap: "CLINIQUE : Une atteinte du III provoque un ptosis (chute de la paupière supérieure), un strabisme divergent, mais aussi une MYDRIASE (dilatation pupillaire) paralytique car la composante parasympathique constrictrice est détruite (le sympathique dilatateur prend le dessus)." },
+      { id: "IV", name: "Nerf Trochléaire", type: "Moteur pur", origin: "Origine apparente : Mésencéphale, à sa face POSTÉRIEURE (sous les colliculi inférieurs de la lame quadrigéminale). Il contourne ensuite le tronc cérébral d'arrière en avant.", function: "Motricité oculaire : innerve uniquement le muscle oblique supérieur (permet de regarder en bas et en dedans, comme pour descendre des escaliers).", trap: "LE PIÈGE ABSOLU : C'est le SEUL nerf crânien de tout le corps humain à émerger à la face dorsale (postérieure) du tronc cérébral (névraxe). Tous les autres émergent en antéro-latéral." },
+      { id: "V", name: "Nerf Trijumeau", type: "Mixte (Sensitif majeur + Moteur)", origin: "Origine apparente : Pont (Protubérance), à la face antéro-latérale, juste à la limite avec l'origine du pédoncule cérébelleux moyen. Possède une grosse racine sensitive et une petite racine motrice.", function: "C'est le grand nerf de la sensibilité de la face. Il se divise en 3 branches (V1 Ophtalmique, V2 Maxillaire, V3 Mandibulaire). La composante motrice gère les muscles de la mastication (masséter, temporal, ptérygoïdiens).", trap: "PIÈGE DE COURS : Seule la 3ème branche (le nerf mandibulaire V3) contient des fibres motrices ! Les nerfs V1 et V2 sont PUREMENT sensitifs." },
+      { id: "VI", name: "Nerf Abducens", type: "Moteur pur", origin: "Origine apparente : Sillon bulbo-pontin. Il émerge très MÉDIALEMENT, juste au-dessus des pyramides bulbaires, de part et d'autre du foramen cæcum.", function: "Motricité oculaire : innerve uniquement le muscle droit latéral (permet l'abduction de l'œil, c'est-à-dire regarder vers l'extérieur).", trap: "Il faut connaître l'ordre d'émergence dans le sillon bulbo-pontin de dedans en dehors : VI (le plus médial), puis VII, puis VIII (le plus latéral)." },
+      { id: "VII", name: "Nerf Facial", type: "Mixte + Parasympathique", origin: "Origine apparente : Sillon bulbo-pontin (en position intermédiaire, dans la fossette latérale du bulbe, entre le VI et le VIII).", function: "Moteur : Muscles de la mimique faciale (fermeture des yeux, sourire). Sensitif : Goût des 2/3 antérieurs de la langue. Parasympathique : Sécrétion des glandes lacrymales, submandibulaires et sublinguales.", trap: "ATTENTION : Il traverse la glande parotide en la divisant en deux lobes, MAIS il n'innerve absolument pas la glande parotide ! C'est un simple lieu de passage (l'innervation de la parotide est dévolue au nerf IX)." },
+      { id: "VIII", name: "Nerf Vestibulo-Cochléaire", type: "Sensitif pur", origin: "Origine apparente : Sillon bulbo-pontin, à son extrémité la plus LATÉRALE, près du pédoncule cérébelleux inférieur et du flocculus du cervelet.", function: "Nerf cochléaire : Audition. Nerf vestibulaire : Équilibre (accélérations linéaires et rotatoires).", trap: "CLINIQUE : En raison de sa position anatomique dans l'angle ponto-cérébelleux (très latéral), une tumeur bénigne (neurinome de l'acoustique) à cet endroit le comprime très rapidement, provoquant surdité de perception unilatérale, acouphènes et vertiges." },
+      { id: "IX", name: "Nerf Glossopharyngien", type: "Mixte + Parasympathique", origin: "Origine apparente : Bulbe rachidien, dans le sillon RÉTRO-olivaire (en arrière de l'olive bulbaire). C'est le plus supérieur de ce sillon.", function: "Moteur : Déglutition (muscles du pharynx). Sensitif : Goût du 1/3 postérieur de la langue. Parasympathique : Innervation sécrétoire de la GLANDE PAROTIDE.", trap: "L'origine dans le sillon rétro-olivaire regroupe les nerfs mixtes de la déglutition et de la phonation (IX, X, XI). C'est bien le IX qui donne le contingent parasympathique de la parotide." },
+      { id: "X", name: "Nerf Vague (Pneumogastrique)", type: "Mixte + Parasympathique", origin: "Origine apparente : Bulbe rachidien, dans le sillon RÉTRO-olivaire, juste en dessous du IX.", function: "Moteur : Phonation (cordes vocales via le nerf récurrent) et déglutition. Parasympathique : C'est le principal contingent parasympathique du corps (ralentissement cardiaque, broncho-constriction, péristaltisme digestif).", trap: "Particularité anatomique : Ses fibres pré-ganglionnaires parasympathiques sont gigantesques. Elles descendent depuis le tronc cérébral, traversent le cou, le thorax, et descendent dans l'abdomen pour innerver le tube digestif jusqu'à l'angle colique gauche !" },
+      { id: "XI", name: "Nerf Accessoire", type: "Moteur pur", origin: "Origine apparente : Bulbe rachidien (sillon RÉTRO-olivaire, en dessous du X) ET Moelle spinale cervicale (racines spinales remontant par le foramen magnum).", function: "Motricité céphalogyre : innerve les muscles Sterno-Cléido-Mastoïdien (SCM) et le muscle Trapèze (permet de tourner la tête et hausser les épaules).", trap: "PIÈGE : C'est le seul nerf crânien à posséder une double origine : une racine crânienne (bulbaire) et une racine spinale (qui naît de la moelle cervicale supérieure C1-C5, remonte dans le crâne puis en ressort)." },
+      { id: "XII", name: "Nerf Hypoglosse", type: "Moteur pur", origin: "Origine apparente : Bulbe rachidien, dans le sillon PRÉ-olivaire (en avant de l'olive bulbaire, entre l'olive et la pyramide).", function: "Motricité stricte de la langue (permet la protraction et les mouvements complexes de la langue).", trap: "TOPOGRAPHIE : C'est le SEUL nerf crânien à émerger dans le sillon pré-olivaire. Tout ce qui est moteur pur a tendance à émerger plus en avant (plus médialement) que les nerfs mixtes/sensitifs." }
+    ];
+
+    // --- DATA: WILLIS ---
+    const willisData = {
+      acoa: { id: "acoa", name: "Artère Communicante Antérieure", inPolygon: true, desc: "Très courte anastomose artérielle impaire et médiane. Elle relie transversalement l'Artère Cérébrale Antérieure droite et l'Artère Cérébrale Antérieure gauche, passant juste au-dessus du chiasma optique.", territory: "Elle ne vascularise pas de territoire cortical proprement dit. Son rôle est purement hémodynamique : elle équilibre les pressions entre les systèmes carotidiens droit et gauche. C'est le site anatomique n°1 des ruptures d'anévrismes intracrâniens (hémorragies méningées spontanées de l'adulte)." },
+      aca: { id: "aca", name: "Artère Cérébrale Antérieure", inPolygon: true, desc: "Branche terminale (bifurcation interne) de l'Artère Carotide Interne. Elle se dirige en avant et en dedans, s'engage dans la fissure longitudinale du cerveau, et contourne le corps calleux (d'avant en arrière) qu'elle accompagne sur toute sa longueur.", territory: "Vascularise la face MÉDIALE (interne) des lobes frontaux et pariétaux. Territoire clinique crucial : le lobule paracentral (qui contient les aires motrice et sensitive du membre inférieur). Une ischémie (AVC) de cette artère provoque un déficit sensitivo-moteur controlatéral à prédominance CRURALE (atteinte majeure de la jambe, face et bras épargnés)." },
+      aci: { id: "aci", name: "Artère Carotide Interne", inPolygon: true, desc: "Nait de la bifurcation carotidienne (C4), monte sans donner de collatérales cervicales, pénètre dans la base du crâne par le canal carotidien (os temporal), chemine dans le sinus caverneux. Elle donne des collatérales intracrâniennes (Artère Ophtalmique, Artère Choroïdienne Antérieure) et participe au polygone via l'Artère Communicante Postérieure, avant de se diviser en ACA et ACM.", territory: "Système artériel antérieur. Assure environ 80% de la vascularisation de l'encéphale (presque tout le cerveau sus-tentoriel sauf le lobe occipital)." },
+      acm: { id: "acm", name: "Artère Cérébrale Moyenne (Artère Sylvienne)", inPolygon: false, desc: "Branche terminale externe, la plus volumineuse, de l'Artère Carotide Interne. Elle s'échappe latéralement pour s'engouffrer dans le sillon latéral (scissure de Sylvius), dont elle va parcourir toute la profondeur avant de s'épanouir à la surface du cerveau. PIÈGE DE COURS : Bien qu'issue de l'ACI, ELLE NE FAIT PARTIE DU POLYGONE DE WILLIS (elle ne participe pas au cercle anastomotique, c'est une artère d'échappement vers le cortex).", territory: "Vascularise les 2/3 de la convexité (face supéro-latérale) du cerveau (lobes frontal, pariétal et temporal partiels). Vascularise l'aire motrice de la face et du bras, et les aires du langage (Broca, Wernicke) sur l'hémisphère dominant. Un AVC sylvien donne une hémiplégie BRACHIO-FACIALE controlatérale et, souvent, une aphasie." },
+      acop: { id: "acop", name: "Artère Communicante Postérieure", inPolygon: true, desc: "Collatérale inconstante mais physiologiquement vitale, naissant de l'Artère Carotide Interne (avant sa bifurcation terminale). Elle se dirige vers l'arrière pour s'anastomoser avec l'Artère Cérébrale Postérieure.", territory: "C'est la véritable clé de voûte de l'anastomose : elle relie le système CAROTIDIEN (antérieur) au système VERTÉBRO-BASILAIRE (postérieur). En cas d'occlusion lente du tronc basilaire, le sang carotidien peut emprunter cette voie pour perfuser l'arrière du cerveau (et inversement)." },
+      acp: { id: "acp", name: "Artère Cérébrale Postérieure", inPolygon: true, desc: "Issues de la bifurcation terminale (en T) du Tronc Basilaire (en avant du mésencéphale). Elles contournent les pédoncules cérébraux et se dirigent vers la face inférieure et postérieure du cerveau. Elles reçoivent les artères communicantes postérieures, fermant ainsi le polygone de Willis en arrière.", territory: "Vascularise la face inférieure du lobe temporal et la quasi-totalité du LOBE OCCIPITAL (incluant le cortex visuel primaire situé sur les berges de la scissure calcarine). Son occlusion (AVC) entraîne classiquement une Hémianopsie Latérale Homonyme (HLH) controlatérale avec épargne maculaire." },
+      basilaire: { id: "basilaire", name: "Tronc Basilaire", inPolygon: false, desc: "Vaisseau artériel impair, médian et volumineux, formé par la réunion des deux artères vertébrales à la jonction bulbo-pontine. Il monte verticalement dans la gouttière basilaire à la face antérieure du pont (protubérance). PIÈGE : Il vient alimenter le polygone de Willis par l'arrière (en donnant les ACP), mais IL N'APPARTIENT PAS au cercle anatomique du polygone stricto sensu.", territory: "Vascularise les structures vitales infratentorielles : le tronc cérébral (artères perforantes pontiques) et le cervelet via deux paires d'artères majeures (AICA : Artère Cérébelleuse Inféro-Antérieure ; et SCA : Artère Cérébelleuse Supérieure). L'occlusion aiguë du tronc basilaire provoque un infarctus gravissime du tronc cérébral (coma, mort, ou 'Locked-in syndrome')." }
+    };
+
+    // --- DATA: CAROTIDE EXTERNE ---
+    const aceData = {
+      acc: { name: "Artère Carotide Commune", desc: "Tronc artériel souche (gauche naissant de la crosse aortique, droite naissant du tronc brachio-céphalique). Elle monte verticalement dans le cou, emballée dans la gaine carotidienne (avec la veine jugulaire interne et le nerf vague X).", trap: "Repère topographique essentiel : L'ACC se bifurque en Carotide Interne et Carotide Externe au niveau du bord supérieur du cartilage thyroïde, ce qui correspond à la hauteur de la vertèbre cervicale C4." },
+      aci: { name: "Artère Carotide Interne", desc: "Branche de bifurcation destinée à l'encéphale. Bien que nommée 'interne', à son origine elle se situe souvent légèrement en arrière (postérieure) et en dehors par rapport à l'ACE. Elle poursuit son trajet tout droit vers la base du crâne.", trap: "LE GRAND PIÈGE : L'Artère Carotide Interne ne donne rigoureusement AUCUNE branche collatérale au niveau cervical. Elle ne commence à distribuer des branches qu'une fois entrée dans la boîte crânienne (artère ophtalmique)." },
+      thyroidienne: { name: "Artère Thyroïdienne Supérieure", desc: "C'est la toute 1ère collatérale de l'ACE. C'est une collatérale ANTÉRIEURE. Elle se détache presque immédiatement après la bifurcation, se dirige vers l'avant et le bas. Elle vascularise le larynx et le pôle supérieur de la glande thyroïde (où elle s'anastomose avec la thyroïdienne inférieure)." },
+      linguale: { name: "Artère Linguale", desc: "C'est la 2ème collatérale ANTÉRIEURE. Elle naît au-dessus de la thyroïdienne supérieure. Elle chemine vers l'avant, passe au-dessus de la grande corne de l'os hyoïde, puis s'enfonce profondément dans la musculature de la langue (sous le muscle hyo-glosse) pour vasculariser la langue et le plancher buccal." },
+      faciale: { name: "Artère Faciale", desc: "C'est la 3ème collatérale ANTÉRIEURE. Elle possède un trajet complexe : elle s'engage d'abord sous la mandibule (en rapport intime avec la glande submandibulaire), puis contourne le bord inférieur de la mandibule (où son pouls est palpable) pour remonter obliquement sur la face, en direction de la commissure des lèvres et des ailes du nez. Elle se termine à l'angle interne de l'œil (artère angulaire). C'est l'artère vasculaire de la mimique et de la face superficielle." },
+      pharyngienne: { name: "Artère Pharyngienne Ascendante", desc: "Collatérale souvent classée comme POSTÉRIEURE (ou médiale). C'est une artère fine et profonde. Elle monte verticalement le long des parois latérales du pharynx qu'elle est chargée d'irriguer, ainsi qu'une partie de la base du crâne." },
+      occipitale: { name: "Artère Occipitale", desc: "Collatérale POSTÉRIEURE. Elle naît de la face postérieure de l'ACE, se dirige vers le haut et l'arrière, passe sous le ventre postérieur du muscle digastrique, et va vasculariser la région nucale et le cuir chevelu postérieur." },
+      auriculaire: { name: "Artère Auriculaire Postérieure", desc: "Collatérale POSTÉRIEURE. Elle se détache au-dessus de l'occipitale, chemine vers l'arrière et le haut, et se glisse dans le sillon rétro-auriculaire (derrière l'oreille, en regard du processus mastoïde de l'os temporal)." },
+      temporale: { name: "Artère Temporale Superficielle", desc: "C'est l'une des deux branches TERMINALES de l'ACE. Elle est la continuation directe mais superficielle de l'axe vasculaire. Elle monte verticalement en traversant la parotide, passe juste en avant du conduit auditif externe et du tragus (où son pouls est facilement palpable et perceptible contre l'arcade zygomatique). Elle irrigue le cuir chevelu pariéto-temporal." },
+      maxillaire: { name: "Artère Maxillaire", desc: "C'est la deuxième branche TERMINALE, volumineuse et très profonde. Elle se détache à angle droit au niveau du col de la mandibule, plonge dans la fosse infratemporale puis dans la fosse ptérygo-palatine. Elle donne 14 à 15 branches collatérales pour irriguer les cavités nasales, le palais, les dents, et les muscles profonds de la face.", trap: "Clinique : C'est une artère majeure de la chirurgie oro-maxillo-faciale. Parmi ses branches collatérales fondamentales, elle donne l'Artère Méningée Moyenne (qui remonte entrer dans le crâne par le foramen épineux et est responsable des hématomes extra-duraux en cas de fracture de la tempe)." }
+    };
+
+    // --- DATA: TRONC CÉRÉBRAL ---
+    const brainstemData = {
+      n12: { name: "Cerveau (Hors Tronc Cérébral) : Nerfs I et II", desc: "Les nerfs Olfactif (I) et Optique (II) sont des structures uniques en anatomie périphérique. Le nerf I est issu de l'évagination du télencéphale (pôle antérieur du cerveau). Le nerf II est issu de l'évagination du diencéphale.", trap: "RÈGLE ABSOLUE : Ils ne prennent JAMAIS leur origine sur les structures du Tronc Cérébral. Histologiquement, ce sont des prolongements de la substance blanche centrale du cerveau, recouverts de myéline d'origine centrale (oligodendrocytes) et non périphérique (cellules de Schwann)." },
+      mesencephale: { name: "Mésencéphale", desc: "C'est la vésicule crâniale (la plus haute) du tronc cérébral. Il relie le diencéphale (au-dessus) au pont (en dessous). Sa face antérieure est constituée de deux épais piliers de substance blanche : les pédoncules cérébraux, séparés par un creux, la fosse interpédonculaire.", trap: "Il donne l'origine apparente de deux nerfs moteurs oculaires : le nerf Oculomoteur (III) naît en AVANT (dans la fosse interpédonculaire), et le nerf Trochléaire (IV) naît en ARRIÈRE (à la face dorsale, sous la lame quadrigéminale)." },
+      pont: { name: "Pont (Protubérance)", desc: "Étage intermédiaire, très renflé vers l'avant. Il dérive du métencéphale. Sa face antérieure est creusée verticalement en son centre par le sillon basilaire (qui accueille le tronc basilaire). Latéralement, il se prolonge par les volumineux pédoncules cérébelleux moyens qui le relient au cervelet.", trap: "Topographie stricte : C'est le lieu d'émergence EXCLUSIF du très volumineux nerf Trijumeau (V), qui naît à la transition exacte entre la face antérieure du pont et la base du pédoncule cérébelleux moyen." },
+      bulbe: { name: "Bulbe Rachidien (Moelle Allongée)", desc: "L'étage inférieur du tronc cérébral, dérivé du myélencéphale. Il fait la transition en bas avec la moelle spinale (jonction bulbo-médullaire, au niveau du foramen magnum). Sa face antérieure présente la fissure médiane antérieure, les pyramides (en dedans) et les olives (en dehors).", trap: "La limite supérieure du bulbe est très marquée transversalement : c'est le sillon bulbo-pontin, d'où émergent les nerfs VI, VII et VIII." },
+      pyramide: { name: "Pyramides Bulbaires", desc: "Ce sont deux cordons saillants longitudinaux situés de part et d'autre de la fissure médiane antérieure du bulbe. Ils contiennent les faisceaux pyramidaux (ou faisceaux cortico-spinaux), qui sont les faisceaux d'axones moteurs descendants responsables de la motricité volontaire.", trap: "À la partie basse du bulbe, 80 à 90% de ces fibres motrices croisent la ligne médiane pour changer de côté : c'est la décussation pyramidale. Toute lésion située au-dessus de cette décussation donnera une paralysie controlatérale." },
+      olive: { name: "Olive Bulbaire", desc: "C'est une éminence ovalaire située à la partie antéro-latérale de la moitié supérieure du bulbe rachidien. Elle est formée par la présence sous-jacente du noyau olivaire inférieur (un volumineux noyau de substance grise très festonné, lié au cervelet).", trap: "C'est le repère d'émergence par excellence : le sillon pré-olivaire (en avant de l'olive) donne naissance au nerf XII. Le sillon rétro-olivaire (en arrière de l'olive) donne naissance, de haut en bas, aux nerfs IX, X et XI." }
+    };
+
+    // --- DATA: APPAREIL DIGESTIF ---
+    const digestiveData = {
+      oesophage: { id: "oesophage", name: "Œsophage", mobility: "fixe", typeText: "Conduit", attach: "Hiatus œsophagien", desc: "Long tuyau d'environ 25 cm faisant suite au pharynx en C6. Il est constitué de 3 portions : cervicale (courte), thoracique (principale, dans le médiastin postérieur), et abdominale (très courte). Il traverse le diaphragme par le hiatus œsophagien en T10. Le cardia (T11) fait suite à la portion abdominale et mène à l'estomac. Rapports : il se situe en arrière de la trachée, qu'il dépasse légèrement à gauche. L'aorte descendante est d'abord pré-œsophagienne, puis latéro-œsophagienne gauche, et enfin rétro-œsophagienne (avant de traverser le hiatus aortique tendineux en T12).", trap: "CLINIQUE MAJEURE (Anastomose porto-cave) : Le cardia (jonction non continente) possède un double drainage. Principalement dans le système porte, secondairement dans le système cave (veines diaphragmatiques). En cas de cirrhose, l'hypertension portale refoule le sang, provoquant des varices œsophagiennes. Celles-ci peuvent céder et entrainer des hématémèses associées à un risque de décès." },
+      foie: { id: "foie", name: "Foie", mobility: "fixe", typeText: "Glande", attach: "Ligaments et area nuda", desc: "Organe thoraco-abdominal, c'est une énorme glande amphicrine. Il projette principalement dans l'hypochondre droit, mais aussi en région épigastrique et hypochondre gauche. Physiologiquement, son bord inférieur ne dépasse pas le gril costal. Il comporte une face diaphragmatique (portion lisse antéro-supérieure, et portion irrégulière postéro-supérieure comprenant une région non péritonisée d'adhérence avec le diaphragme par où passe la Veine Cave Inférieure) et une face viscérale inférieure plane. Il est fixé au diaphragme par l'area nuda et par des ligaments suspenseurs (coronaires, falciforme).", trap: "Hépatomégalie : le foie déborde du gril costal. Anastomose porto-cave : Le foie reçoit le sang de la veine porte. Au niveau de l'ombilic, le drainage se fait vers le système cave, mais il existe le ligament rond (reliquat de la veine ombilicale). Lors d'une hypertension portale, le ligament rond s'ouvre sous la pression et le sang portal fuit vers la région ombilicale : c'est la Tête de Méduse." },
+      estomac: { id: "estomac", name: "Estomac", mobility: "mobile", typeText: "Intestin Antérieur", attach: "Mésos (Omentums)", desc: "Intestin antérieur (vascularisé par l'artère gastrique gauche issue du tronc cœliaque naissant en T12). Forme de cornemuse, mobile et extensible (rôle de stockage) dans l'étage sus-mésocolique. Possède 2 courbures (petite à droite, grande à gauche). Régions : Cardia (T11, orifice non continent, angle cardio-tubérositaire formant un clapet anti-reflux), Fundus (grosse tubérosité), Corps, Antre pylorique, et Pylore (L1, orifice continent / sphincter). Il est relié à la paroi et aux organes par des mésos : le petit omentum (vers le foie) et le grand omentum (qui pend en tablier et peut colmater une inflammation).", trap: "CLINIQUE : Hernie hiatale par glissement (la jonction œsophage-estomac ascensionne et l'angle cardio-tubérositaire disparaît) ou par roulement (le fundus dépasse le diaphragme mais l'angle est conservé). Sténose du pylore (enfants). Ulcères gastriques (souvent antre pylorique)." },
+      duodenum: { id: "duodenum", name: "Duodénum", mobility: "fixe", typeText: "Intestin Ant. / Moyen", attach: "Sac de péritoine plaqué", desc: "Première portion de l'intestin grêle. Il forme le cadre duodénal intimement lié au pancréas. Il possède 4 portions : D1 (L1, ampoule duodénale, suite au pylore), D2 (descend bord droit rachis jusqu'à L4, contient les papilles mineure et majeure sur sa face médiale), D3 (horizontal en L4), D4 (ascendante à gauche du rachis jusqu'à L2, forme l'angle duodéno-jéjunal fixé à la paroi postérieure par du péritoine). La portion distale de la papille majeure délimite l'intestin antérieur et l'intestin moyen.", trap: "PIÈGE DE COURS : Le duodénum est un organe très FIXE. Le bloc duodéno-pancréatique est enchâssé dans un sac de péritoine plaqué contre la paroi postérieure, ce qui donne l'impression que le pancréas et le duodénum sont rétropéritonéaux, bien qu'ils soient en réalité intrapéritonéaux." },
+      pancreas: { id: "pancreas", name: "Pancréas", mobility: "fixe", typeText: "Glande", attach: "Sac de péritoine plaqué", desc: "Glande amphicrine (endocrine: insuline/glucagon ; exocrine: sucs) enchâssée dans le cadre duodénal. Le bloc duodéno-pancréatique est accolé à la paroi postérieure. Parties : Tête (enchâssée entre D1, D2, D3), Processus unciné/uncus (crochet inférieur), Isthme (zone rétrécie), Corps, et Queue. Le canal pancréatique principal part de la queue, chemine vers la tête, rejoint le canal cholédoque et se jette dans la papille duodénale majeure de D2.", trap: "FIXITÉ ET CLINIQUE : Enchâssé dans un sac péritonéal plaqué à la paroi postérieure. En cas de calculs formés dans les voies biliaires et bloqués au niveau de la papille majeure, l'obstruction entraîne une pancréatite aiguë hémorragique (les sucs digèrent le pancréas)." },
+      jejunum: { id: "jejunum", name: "Jéjunum", mobility: "mobile", typeText: "Intestin Moyen", attach: "Le Mésentère", desc: "Portion proximale de l'intestin grêle (faisant suite au duodénum). Il appartient à l'intestin moyen et est vascularisé par les branches gauches de l'Artère Mésentérique Supérieure (AMS, née en L1). Agencement caractéristique : les anses jéjunales sont disposées de manière HORIZONTALE. Il assure l'absorption des nutriments via des villosités muqueuses.", trap: "Le jéjunum est complètement libre dans la cavité péritonéale. Il est relié à la paroi postérieure par le MÉSENTÈRE. Ce méso assure une très grande MOBILITÉ, nécessaire au péristaltisme, et achemine les vaisseaux et les nerfs jusqu'au tube digestif." },
+      ileum: { id: "ileum", name: "Iléum", mobility: "mobile", typeText: "Intestin Moyen", attach: "Le Mésentère", desc: "Portion terminale de l'intestin grêle (l'ensemble jéjunum+iléum = 15-16 anses, 6m de long, 3cm de diamètre). Appartient à l'intestin moyen (AMS). Agencement caractéristique : les anses iléales sont disposées de manière VERTICALE. L'iléum se termine en se jetant dans le cæcum au niveau de la jonction (ou angle) iléo-cæcale.", trap: "Très MOBILE car il est également relié à la paroi par le MÉSENTÈRE. Un volvulus (torsion sur lui-même) peut survenir, empêchant la bonne vascularisation et provoquant une occlusion intestinale." },
+      colon_droit: { id: "colon_droit", name: "Cæcum & Côlon Ascendant", mobility: "fixe", typeText: "Intestin Moyen", attach: "Mésocôlon ascendant (Fascia)", desc: "Intestin moyen (vascularisé par AMS). Cæcum : portion dilatée (6cm de diamètre) mobile, juste sous la peau, dans la fosse iliaque droite. Il est borgne, fait suite à la jonction iléo-cæcale, et porte l'appendice vermiforme (vers lequel convergent les 3 tænias coli). Côlon ascendant : monte dans le flanc droit jusqu'à l'angle colique droit (L1) situé sous le foie. Il mesure 10cm de long, 6cm de diamètre, et possède 1 tænia antérieur et 2 postérieurs.", trap: "PIÈGE DE COURS : Le côlon ascendant est une portion FIXE ! Il existe un mésocôlon ascendant, qui est un fascia, faisant du côlon ascendant une portion fixe du tube digestif (un fascia est un méso accolé à la paroi). Clinique du cæcum : appendicite avec douleur dans la fosse iliaque droite et psoïtis (contracture involontaire du muscle psoas)." },
+      transverse: { id: "transverse", name: "Côlon Transverse", mobility: "mobile", typeText: "Intestin Moyen & Post.", attach: "Mésocôlon Transverse", desc: "De l'angle colique droit (L1) à l'angle colique gauche (T11-T12, sous la rate, plus profond). 5 cm de diamètre. Les 2/3 droits appartiennent à l'intestin moyen (AMS), le 1/3 gauche à l'intestin postérieur (vascularisé par l'AMI, née en L3). Présente des haustrations, 1 tænia antérieur et 2 postérieurs.", trap: "Il est très MOBILE car relié à la paroi par un méso : le Mésocôlon transverse. Attention aux rapports de cette racine : Le mésocôlon transverse sépare la cavité en un compartiment sus-mésocolique (estomac, intestin antérieur) et un compartiment sub-mésocolique (intestin moyen et postérieur)." },
+      colon_gauche: { id: "colon_gauche", name: "Côlon Descendant", mobility: "fixe", typeText: "Intestin Postérieur", attach: "Mésocôlon descendant (Fascia)", desc: "Intestin postérieur (vascularisé par les branches de l'AMI naissant en L3). Longe le flanc gauche depuis l'angle colique gauche (T11) jusqu'à la fosse iliaque gauche. 4cm de diamètre. Devient plus lisse de proximal en distal par diminution des haustrations. Portion lombaire (1 tænia antérieur, 2 postérieurs : postéro-latéral et postéro-médial). Portion iliaque (1 tænia antérieur, 1 postérieur).", trap: "Tout comme l'ascendant, il est totalement FIXE ! Il existe un mésocôlon descendant accolé à la paroi, rendant cette portion fixe." },
+      sigmoide: { id: "sigmoide", name: "Côlon Sigmoïde", mobility: "mobile", typeText: "Intestin Postérieur", attach: "Méso-sigmoïde", desc: "Dernière portion du côlon, en forme de lettre grecque sigma (S). Fait suite au côlon descendant en regard du détroit supérieur. Forme une concavité dans le pelvis et s'abouche au rectum en S3. 3 cm de diamètre. Il est SANS haustrations et possède 2 tænias (antérieur et postérieur). Le nombre de diverticules augmente avec la distalité.", trap: "Extrêmement MOBILE grâce à la présence d'un méso-sigmoïde ! Sa grande mobilité peut causer un volvulus. Par ailleurs, la présence de nombreux diverticules à ce niveau peut entraîner une sigmoïdite (inflammation)." },
+      rectum: { id: "rectum", name: "Rectum & Canal Anal", mobility: "fixe", typeText: "Intestin Postérieur", attach: "Espace sous-péritonéal", desc: "Fait suite au sigmoïde en S3. 12 cm de haut, 3 cm de diamètre. Rôle de réservoir. L'ampoule rectale (plis et sillons) se poursuit par le canal anal (qui abouche à la peau). Moulé sur la concavité du sacrum. Changement de direction à la jonction ano-rectale : le canal anal part vers l'avant. Angle ano-rectal (cap anal) de 100°. Système sphinctérien : interne (végétatif, épaississement de la circulaire) et externe (somatique). Portion proximale péritonisée/mobile, portion distale fixe.", trap: "CLINIQUE MAJEURE (Anastomose porto-cave) : Le rectum se draine vers le système cave ET le système porte. Lors d'une cirrhose, l'hypertension portale provoque la dilatation des varices hémorroïdaires. Le patient peut décéder de rectorragies cataclysmiques (saignements du rectum). Cancer colorectal (dépistage)." }
+    };
+
+    // --- DATA: PELVIS ---
+    const PELVIS_C = {
+      root:      { t:"text-red-300",    b:"border-red-500/40",    bg:"bg-red-900/20",    d:"bg-red-400",    ring:"ring-red-500/40"    },
+      main:      { t:"text-orange-300", b:"border-orange-500/40", bg:"bg-orange-900/20", d:"bg-orange-400", ring:"ring-orange-500/40" },
+      external:  { t:"text-yellow-300", b:"border-yellow-600/40", bg:"bg-yellow-900/20", d:"bg-yellow-400", ring:"ring-yellow-500/40" },
+      posterior: { t:"text-blue-300",   b:"border-blue-500/40",   bg:"bg-blue-900/20",   d:"bg-blue-400",   ring:"ring-blue-500/40"   },
+      anterior:  { t:"text-rose-300",   b:"border-rose-500/40",   bg:"bg-rose-900/20",   d:"bg-rose-400",   ring:"ring-rose-500/40"   },
+      pudendal:  { t:"text-purple-300", b:"border-purple-500/40", bg:"bg-purple-900/20", d:"bg-purple-400", ring:"ring-purple-500/40" },
+    };
+
+    const ART = {
+      id:"aorte", n:"Aorte abdominale", tag:"T12 à L4", ty:"root",
+      d:"L'aorte abdominale débute au niveau du hiatus aortique du diaphragme en regard de la vertèbre T12. Elle donne les artères rénales en L1, puis les artères gonadiques (ovariques chez la femme, testiculaires chez l'homme) en L2. Elle se bifurque ensuite en regard de L4 en deux artères iliaques communes (AIC) droite et gauche. Elle se prolonge également sur la ligne médiane par l'artère sacrale médiane (branche grêle, continuité impaire dans l'axe de l'aorte).",
+      tr:null, c:[
+      { id:"aic", n:"Artère iliaque commune (AIC)", tag:"Bifurcation sacro-iliaque", ty:"main",
+        d:"Les deux artères iliaques communes (AIC) cheminent vers le bas et l'extérieur. Chacune d'entre elles se divise en deux branches majeures : l'artère iliaque externe (AIE) et l'artère iliaque interne (AII).",
+        tr:"PIÈGE TOPOGRAPHIQUE ABSOLU : La bifurcation de l'AIC se fait très précisément en regard de la partie haute de l'articulation SACRO-ILIAQUE. Beaucoup d'ouvrages simplifient en disant L5-S1, mais l'articulation sacro-iliaque est le repère exact exigé par le Pr Maldonado, car il précise la latéralisation.", c:[
+        { id:"aie", n:"Artère iliaque externe (AIE)", tag:"Extrapelvienne", ty:"external",
+          d:"L'AIE est à destinée EXTRAPELVIENNE (membre inférieur). Elle ne plonge absolument pas dans le pelvis. Elle se dirige vers l'avant et passe SOUS le ligament inguinal (qui est tendu entre l'épine iliaque antéro-supérieure et le tubercule du pubis). Avant de passer ce ligament, elle donne l'artère circonflexe iliaque profonde et l'artère épigastrique inférieure, avant de devenir l'artère fémorale.", tr:null, c:[
+          { id:"fem", n:"Artère fémorale", tag:"Trigone fémoral", ty:"external",
+            d:"Dès que l'AIE passe sous le ligament inguinal (au niveau du pli de l'aine), elle change de nom et devient l'artère fémorale. Elle chemine alors dans le TRIGONE FÉMORAL. Les limites de ce trigone sont : le ligament inguinal (en haut), le muscle sartorius (en latéral) et le muscle long adducteur (en médial).",
+            tr:"MNÉMOTECHNIQUE INCONTOURNABLE : Le contenu du trigone fémoral s'organise de latéral à médial selon le mot 'NAV' : Nerf fémoral → Artère fémorale → Veine fémorale. Le nerf est donc la structure la plus externe (latérale) de la cuisse !", c:[] },
+          { id:"circ", n:"Artère circonflexe iliaque profonde", tag:"Arc pariétal latéral", ty:"external",
+            d:"C'est une petite artère à trajet ascendant qui longe la crête iliaque. Elle s'anastomose avec l'artère iliolombaire (issue du tronc postérieur de l'AII) pour former un arc artériel d'irrigation sur la paroi abdominale latérale.", tr:null, c:[] }
+          ]},
+        { id:"aii", n:"Artère iliaque interne (AII)", tag:"Endopelvienne", ty:"main",
+          d:"Aussi appelée artère hypogastrique, c'est la véritable artère ENDOPELVIENNE (elle plonge à l'intérieur de la cavité pelvienne). Elle vascularise les viscères et les parois du pelvis. Elle se divise rapidement en deux troncs majeurs : le tronc POSTÉRIEUR (pariétal) et le tronc ANTÉRIEUR (viscéral).",
+          tr:"Il existe une très grande variabilité interindividuelle concernant le niveau et l'ordre d'émergence des branches de l'AII. En revanche, les territoires de destination (les organes cibles) restent toujours constants.", c:[
+          { id:"tp", n:"Tronc POSTÉRIEUR de l'AII", tag:"Destinée PARIÉTALE", ty:"posterior",
+            d:"Le tronc postérieur de l'artère iliaque interne a une destinée exclusivement PARIÉTALE. Il vascularise les éléments musculaires, ligamentaires et osseux de la paroi pelvienne. Il donne 3 branches : l'artère iliolombaire, l'artère sacrale latérale et l'artère glutéale supérieure.", tr:null, c:[
+            { id:"ilio", n:"Artère iliolombaire", tag:"Trajet ascendant", ty:"posterior",
+              d:"Elle a un trajet ascendant, croise le détroit supérieur, longe la crête iliaque puis l'ilion, jusqu'à contourner le rachis lombaire. Elle s'anastomose avec l'artère circonflexe iliaque profonde pour fermer l'arc pariétal.", tr:null, c:[] },
+            { id:"saclat", n:"Artère sacrale latérale", tag:"Face ant. du sacrum", ty:"posterior",
+              d:"Elle descend et irrigue la face antérieure du sacrum ainsi que les éléments ligamentaires avoisinants. Les artères sacrales latérales droite et gauche accompagnent la sacrale médiane.", tr:null, c:[] },
+            { id:"glsup", n:"Artère glutéale supérieure", tag:"Foramen SUPRA-piriforme", ty:"posterior",
+              d:"C'est une très grosse branche qui est le prolongement direct du tronc postérieur. Elle sort de la cavité pelvienne en passant par le FORAMEN SUPRA-PIRIFORME (dans la grande ouverture ischiatique) pour aller vasculariser les muscles glutéaux de la fesse en zone extra-pelvienne.",
+              tr:"RÈGLE TOPOGRAPHIQUE MAJEURE : 'SUPRA' = passe AU-DESSUS du muscle piriforme. À l'inverse, l'artère glutéale inférieure (issue du tronc antérieur) passera par le foramen INFRA-piriforme. C'est un grand classique des QCM d'anatomie.", c:[] }
+            ]},
+          { id:"ta", n:"Tronc ANTÉRIEUR de l'AII", tag:"Destinée VISCÉRALE", ty:"anterior",
+            d:"Il a une destinée majoritairement VISCÉRALE, bien qu'il comporte aussi quelques branches pariétales. Il donne naissance à 7 à 8 branches principales.", tr:null, c:[
+            { id:"omb", n:"Artère ombilicale", tag:"Vestige embryonnaire", ty:"anterior",
+              d:"Pendant la vie embryonnaire, elle remontait jusqu'à l'ombilic pour ramener le sang fœtal au placenta. Chez l'adulte, sa portion DISTALE se bouche et devient un simple cordon fibreux. Sa portion PROXIMALE reste perméable : elle longe le bord supéro-latéral de la vessie et lui donne quelques branches vésicales avant de s'arrêter.", tr:null, c:[] },
+            { id:"obt", n:"Artère obturatrice", tag:"Foramen obturé", ty:"anterior",
+              d:"Bien qu'elle naisse dans le pelvis, elle est destinée au MEMBRE INFÉRIEUR (région médiale de la cuisse). Elle quitte le pelvis en traversant le foramen obturé (orifice osseux déjà partiellement fermé par la membrane obturatrice).", tr:null, c:[] },
+            { id:"ut", n:"Artère utérine ♀ / vésico-déférentielle ♂", tag:"Croise l'uretère", ty:"anterior",
+              d:"♀ L'artère utérine est épaisse et présente une forme très sinueuse (en zig-zag). ♂ Chez l'homme, elle est remplacée par l'artère VÉSICO-DÉFÉRENTIELLE qui vascularise une partie de la vessie et le conduit déférent.",
+              tr:"DEUX PIÈGES CLINIQUES MAJEURS : 1) L'artère utérine croise l'uretère par EN AVANT (mnémotechnique : 'l'eau coule sous le pont'). C'est un risque chirurgical massif. 2) Sa forme en zig-zag lui permet de s'étirer et de s'allonger considérablement lors de la grossesse.", c:[] },
+            { id:"vag", n:"Artère vaginale ♀ / vésico-prostatique ♂", tag:"Parfois double", ty:"anterior",
+              d:"♀ L'artère vaginale vascularise le vagin (elle est parfois double et peut naître très précocement). ♂ Chez l'homme, elle est remplacée par l'artère VÉSICO-PROSTATIQUE qui vascularise la partie basse de la vessie (fundus) et la prostate.", tr:null, c:[] },
+            { id:"recm", n:"Artère rectale moyenne", tag:"Rectum", ty:"anterior",
+              d:"Elle vascularise le rectum moyen. Le rectum a une TRIPLE irrigation artérielle : rectale SUPÉRIEURE (issue de l'AMI), rectale MOYENNE (tronc ant. AII), et rectale INFÉRIEURE (issue de l'artère pudendale interne).", tr:null, c:[] },
+            { id:"glinf", n:"Artère glutéale inférieure", tag:"Foramen infra-piriforme", ty:"anterior",
+              d:"Branche pariétale qui rejoint la région fessière en sortant du pelvis par le foramen INFRA-PIRIFORME (sous le muscle piriforme).",
+              tr:"VARIABILITÉ : Bien qu'elle naisse typiquement du tronc antérieur, sa variabilité interindividuelle est telle qu'elle peut parfois naître du tronc POSTÉRIEUR.", c:[] },
+            { id:"pud", n:"Artère pudendale interne", tag:"Canal d'Alcock", ty:"anterior",
+              d:"C'est l'artère maîtresse du périnée. Elle a un trajet complexe en 3 temps (en lacet) :\n① Elle SORT du pelvis par le foramen INFRA-PIRIFORME (grande ouverture ischiatique).\n② Elle CONTOURNE l'épine ischiatique par l'arrière.\n③ Elle RENTRE à nouveau dans le pelvis par la PETITE ouverture ischiatique.\nEnsuite, elle longe la paroi latérale interne dans un dédoublement aponévrotique du muscle obturateur interne appelé CANAL PUDENDAL (ou canal d'Alcock).",
+              tr:"L'ordre des éléments vasculonerveux dans le canal pudendal, de haut en bas, est : NERF pudendal (supérieur) > ARTÈRE pudendale (milieu) > VEINE pudendale (inférieure). Une compression ici donne le 'Syndrome d'Alcock' (névralgies périnéales fréquentes chez les cyclistes).", c:[
+              { id:"recinf", n:"Artère rectale inférieure", tag:"⚡ AVANT le canal", ty:"pudendal",
+                d:"Elle vascularise la partie inférieure du rectum et le sphincter de l'anus.",
+                tr:"CHRONOLOGIE CLEF EXIGIBLE : L'artère rectale inférieure est la SEULE branche à naître AVANT que la pudendale interne ne pénètre dans le canal d'Alcock. Toutes les autres émergent pendant ou après !", c:[] },
+              { id:"vesinf", n:"Branches vésicales inférieures", tag:"Après le canal", ty:"pudendal",
+                d:"Elles émergent à la sortie du canal pudendal et vascularisent la partie basse des viscères de la loge urinaire.", tr:null, c:[] },
+              { id:"perin", n:"Artère périnéale", tag:"Centre tendineux", ty:"pudendal",
+                d:"Elle vascularise la partie centrale du périnée et le centre tendineux du périnée (noyau fibreux central).", tr:null, c:[] },
+              { id:"pubien", n:"Artère rétropubienne + prépubienne", tag:"Symphyse pubienne", ty:"pudendal",
+                d:"Bifurcation artérielle qui va contourner et vasculariser la symphyse pubienne en arrière (rétropubienne) et en avant (prépubienne).", tr:null, c:[] },
+              { id:"bul", n:"Artère bulbaire", tag:"Corps érectiles", ty:"pudendal",
+                d:"Elle vascularise les bulbes vestibulaires et les corps érectiles (clitoris chez la femme, pénis chez l'homme).", tr:null, c:[] },
+              { id:"ure", n:"Artère urétrale", tag:"Urètre", ty:"pudendal",
+                d:"Elle vascularise spécifiquement le conduit urétral.", tr:null, c:[] },
+              { id:"prcl", n:"Artère profonde du clitoris ♀ / du pénis ♂", tag:"Corps caverneux", ty:"pudendal",
+                d:"Artère majeure de l'érection qui s'enfonce au cœur des corps caverneux du clitoris ou du pénis.", tr:null, c:[] },
+              { id:"dorcl", n:"Artère dorsale du clitoris ♀ / du pénis ♂", tag:"Terminale fine", ty:"pudendal",
+                d:"C'est l'ultime branche TERMINALE de l'artère pudendale interne. Elle est très fine et longe le dos de l'organe érectile.", tr:null, c:[] }
+              ]}
+            ]}
+          ]}
+        ]}
+      ]
+    };
+
+    const VENOUS_TRONC_ANT = [
+      { n:"Veine pudendale", note:"Remonte par le canal pudendal (ordre inférieur dans le canal)" },
+      { n:"Veine rectale inférieure", note:"Drainage de la zone anale" },
+      { n:"Veine glutéale inférieure", note:"Passe par le foramen infra-piriforme" },
+      { n:"Veine rectale moyenne", note:"Voie de dérivation porto-cave" },
+      { n:"Veine vaginale", note:"Uniquement chez la femme ♀" },
+      { n:"Veine utérine", note:"Satellite de l'artère utérine UNIQUEMENT dans sa partie PROXIMALE" },
+      { n:"Veine obturatrice", note:"Reviens du membre inférieur" },
+      { n:"Veine ombilicale", note:"Drainage antérieur" },
+    ];
+
+    const VENOUS_TRONC_POST = [
+      { n:"Veine glutéale supérieure", note:"Passe par le foramen supra-piriforme" },
+      { n:"Veine sacrale latérale", note:"Drainage pariétal postérieur" },
+      { n:"Veine iliolombaire", note:"Drainage pariétal supérieur" },
+    ];
+
+    const VENOUS_CLINICAL = [
+      { icon:"⚠️", title:"Syndrome de Cockett (ou May-Thurner)", color:"rose",
+        d:"Les veines iliaques communes (VIC) droite et gauche fusionnent pour former la Veine Cave Inférieure (VCI). La VCI étant située à droite de l'aorte abdominale, la VIC gauche a un trajet plus long et oblique. Elle doit OBLIGATOIREMENT croiser EN ARRIÈRE de l'Artère Iliaque Commune (AIC) droite.\n\nL'AIC droite, pulsatile et souvent durcie par l'athérome avec l'âge, va progressivement écraser la veine contre le rachis postérieur. Cette compression mécanique provoque une stase veineuse responsable d'œdèmes sévères du membre inférieur gauche et de volumineuses varices pelviennes." },
+      { icon:"🔄", title:"Asymétrie du drainage veineux gonadique", color:"sky",
+        d:"Le drainage des gonades (testicules ou ovaires) n'est pas symétrique, et c'est capital !\n\nÀ DROITE : la veine gonadique remonte se jeter directement dans la VCI en formant un angle aigu (qui agit comme une excellente valvule anti-reflux naturelle).\nÀ GAUCHE : la veine gonadique doit remonter et se jeter perpendiculairement dans la veine rénale gauche. Cet angle droit franc rend la valvule ostiale inefficace. La colonne de pression hydrostatique s'y transmet très facilement, ce qui explique pourquoi les VARICOCÈLES (dilatation pathologique des veines testiculaires) sont infiniment plus fréquentes à GAUCHE qu'à droite." },
+      { icon:"🔵", title:"Le Plexus Pampiniforme", color:"purple",
+        d:"C'est un énorme plexus veineux très développé, situé en distalité du tronc antérieur de la veine iliaque interne.\n\nChez la femme, il reçoit de nombreuses veines (notamment la veine utérine). Chez l'homme (un peu moins développé), il est très présent autour des voies spermatiques dans les bourses. Il s'anastomose avec le réseau de la veine ovarique/testiculaire supérieure, créant ainsi d'importantes voies de suppléance vasculaire." },
+    ];
+
+    const VENOUS_PLEXUS = [
+      "Plexus vésical (ou prévésical) : en avant, loge urinaire.",
+      "Plexus prérectal : en arrière, loge digestive.",
+      "Plexus sacral : contre la paroi postérieure osseuse.",
+    ];
+
+    const LYMPH_DEEP = [
+      "Réseau des viscères pelviens eux-mêmes.",
+      "Face interne de la paroi pelvienne.",
+      "Région du trigone fémoral (nœuds profonds).",
+      "Nœuds disséminés le long des veines iliaques internes.",
+      "Nœuds répartis le long des veines iliaques externes.",
+      "Nœuds des niveaux utérin, vaginal et rectal (étage profond).",
+    ];
+
+    const LYMPH_SUPERFICIAL = [
+      "Plis inguinaux (aine).",
+      "Région fémorale superficielle.",
+      "Drainage du périnée et des organes génitaux externes.",
+    ];
+
+    const LYMPH_LOGES = [
+      { n:"Loge urinaire", col:"sky",    icon:"💧" },
+      { n:"Loge génitale", col:"pink",   icon:"🌸" },
+      { n:"Loge digestive", col:"amber", icon:"🟡" },
+    ];
+
+    const SOMA_PLEXUS_SACRAL = {
+      composition: [
+        { label:"Tronc lombo-sacré", detail:"Petite portion de L4 + L5 entier", color:"amber" },
+        { label:"Nerf S1", detail:"Émergence sacrée", color:"orange" },
+        { label:"Nerf S2", detail:"Émergence sacrée", color:"orange" },
+        { label:"Nerf S3", detail:"Émergence sacrée", color:"orange" },
+      ],
+      nb:"Rôle de pont anatomique : Le tronc lombo-sacré relie physiquement le plexus LOMBAL au plexus SACRAL (les racines L4 et L5 appartiennent donc aux deux plexus simultanément). Notons que le nerf S5 et le nerf coccygien existent mais contribuent de façon très marginale à l'innervation globale.",
+      sciatique:{
+        type:"Nerf Mixte (Somatique, sensitif ET moteur). Le plus gros nerf de l'organisme.",
+        sortie:"Foramen INFRA-PIRIFORME (par la grande ouverture sciatique, sous le muscle piriforme).",
+        trajet:"Il s'échappe du pelvis, rejoint la portion postéro-médiale de la région glutéale (la fesse), puis descend verticalement à la face postérieure de la cuisse pour innerver tout le membre inférieur.",
+        dermatomes:"La sensibilité des membres inférieurs s'organise en dermatomes LONGITUDINAUX (contrairement au tronc qui est horizontal). Cet étirement des métamères est le résultat direct de notre passage à la bipédie au cours de l'évolution.",
+        clinical:"Pathologie classique (la 'sciatique') : Une hernie discale lombaire, typiquement au niveau de l'espace L5-S1, va faire protrusion et venir comprimer mécaniquement la racine du nerf L5 ou S1. Cette compression radiculaire provoque une douleur lombaire basse fulgurante qui irradie tout le long du trajet du nerf sciatique (face postérieure de la cuisse, face externe du mollet, jusqu'à la plante du pied)."
+      }
+    };
+
+    const SOMA_PLEXUS_PUDENDAL = {
+      composition:"Racines sacrées S2 + S3 + S4 → Forment le Plexus Pudendal → Donne le Nerf Pudendal.",
+      caractere:"C'est un nerf très majoritairement SENSITIF (le Pr Maldonado insiste souvent en cours : 'c'est le nerf sensitif par excellence du pelvis'), bien qu'il conserve une fonction motrice distale très spécifique (sphincters).",
+      trajet:"Il suit rigoureusement le même trajet complexe en 3 temps (en lacet) que l'artère pudendale interne (sortie infra-piriforme, contournement épine, rentrée petite ouverture) pour finir par cheminer dans le canal pudendal (d'Alcock) à la face interne de la branche ischio-pubienne.",
+      branches:[
+        { n:"Branche rectale inférieure", role:"Elle contient les rares fibres MOTRICES du plexus. Elle innerve le sphincter strié de l'anus (SSA). Action motrice couplée : Lors d'une contraction anale volontaire, le muscle élévateur de l'anus (MEA) et le SSA se contractent de manière bilatérale et rigoureusement simultanée (ils sont fonctionnellement indissociables)." },
+        { n:"Branche périnéale", role:"Assure la sensibilité superficielle de la vulve, des grandes lèvres, du scrotum et du périnée central." },
+        { n:"Branche dorsale du clitoris ♀ / du pénis ♂", role:"Assure la sensibilité fine, thermique et érogène du clitoris et du gland (organes génitaux externes terminaux)." },
+      ],
+      dermatomes:"Topographie unique en cible : À la différence absolue des membres, les dermatomes sacrés périnéaux sont CIRCULAIRES (en cercles concentriques). La racine S5 est la plus centrale (située sur la marge directe de l'anus). Elle est entourée par le cercle de S4, puis S3, et enfin S2 à la périphérie.",
+      clinical:"Lors d'une suspicion d'atteinte du plexus pudendal ou du cône terminal, le neurologue réalise un examen sensitif (tact, pique-touche, sensation au froid) directement sur la région périanale en dessinant des cercles concentriques pour tester chaque racine sacrée de S5 à S2."
+    };
+
+    const AUTO_PHI_FUNCTIONS = [
+      { f:"Loge Urinaire (Vessie et Miction)", para:"Il RELAXE le sphincter vésical interne lisse (ouvre la porte) + Il CONTRACTE massivement le muscle de la paroi (le détrusor) → Ce processus actif autorise l'écoulement des urines : c'est la MICTION.", sympa:"Il CONTRACTE fermement le sphincter interne (ferme la porte) + Il RELÂCHE le muscle détrusor → Ce processus de stockage bloque les urines : c'est la CONTINENCE (remplissage vésical progressif)." },
+      { f:"Loge Digestive (Rectum et Défécation)", para:"Il RELAXE le sphincter interne de l'anus + Il CONTRACTE puissamment les fibres musculaires lisses de la paroi rectale → Cette contraction péristaltique permet l'expulsion des selles : c'est la DÉFÉCATION.", sympa:"Il maintient le TONE du sphincter et RELÂCHE la paroi de l'ampoule rectale pour permettre sa distension, son remplissage et le stockage prolongé : c'est la CONTINENCE fécale." },
+      { f:"Loge Génitale (Sphère Sexuelle)", para:"Il provoque la vasodilatation massive et l'afflux sanguin (engorgement) → C'est la commande nerveuse primaire de l'ÉRECTION des corps érectiles (pénis chez l'homme, clitoris et bulbes vestibulaires chez la femme).", sympa:"Il déclenche les contractions musculaires lisses rythmées et spasmodiques des conduits génitaux → C'est la commande nerveuse de l'ÉJACULATION et de la sécrétion des fluides lubrifiants (par les glandes vestibulaires ou prostatiques)." },
+    ];
+
+    const AUTO_SEPTA = [
+      { n:"Septum vésico-vaginal", icon:"🟦", pos:"Tissu conjonctif fibreux situé strictement entre la loge urinaire (face postérieure de la vessie) et la loge génitale (face antérieure de l'utérus et du vagin)." },
+      { n:"Septum recto-vaginal", icon:"🟥", pos:"Cloison aponévrotique descendante insérée entre la loge génitale (face postérieure du vagin) et la loge digestive (face antérieure du rectum)." },
+      { n:"Septum présacral", icon:"🟩", pos:"Dernière lame conjonctive située tout à l'arrière des viscères, plaquée contre la face antérieure de la concavité osseuse du sacrum." },
+    ];
+
+    const RECAP_TRONC_POST = ["Artère iliolombaire (arc pariétal)","Artère sacrale latérale (face antérieure sacrum)","Artère glutéale supérieure (Très grosse branche. Sort par le foramen SUPRA-piriforme)"];
+    const RECAP_TRONC_ANT = ["Artère ombilicale (distal fibreux, proximal vers vessie)","Artère obturatrice (traverse le foramen obturé vers la cuisse)","Artère utérine ♀ (zig-zag, croise uretère en avant) / vésico-déférentielle ♂","Artère vaginale ♀ (parfois double) / vésico-prostatique ♂","Artère rectale moyenne (2ème source du rectum)","Artère glutéale inférieure (Sort par le foramen INFRA-piriforme)","Artère pudendale interne (Trajet en lacet, canal d'Alcock, donne 8 branches terminales)"];
+    const RECAP_PUDENDAL_BRANCHES = [
+      {n:"Rectale inférieure", note:"SEULE branche qui naît AVANT d'entrer dans le canal d'Alcock ⚡"},
+      {n:"Branches vésicales inf.", note:"Naissent à la sortie du canal, loge urinaire"},
+      {n:"Périnéale", note:"Vascularise le centre tendineux du périnée"},
+      {n:"Rétropubienne + prépubienne", note:"Contournent la symphyse pubienne"},
+      {n:"Bulbaire", note:"Vascularise les corps érectiles proximaux"},
+      {n:"Urétrale", note:"Spécifique au conduit de l'urètre"},
+      {n:"Profonde du clitoris/pénis", note:"S'enfonce dans les corps caverneux (érection)"},
+      {n:"Dorsale du clitoris/pénis", note:"Branche terminale fine superficielle"},
+    ];
+
+
+    // --- COMPONENTS ---
+
+    function PelvisTreeNode({ node, selectedId, onSelect, depth=0 }) {
+      const [open,setOpen] = useState(depth<2);
+      const cols = PELVIS_C[node.ty]||PELVIS_C.main;
+      const hasCh = node.c && node.c.length>0;
+      const isSel = selectedId===node.id;
+      return (
+        <div className={depth>0?"ml-3 border-l border-slate-700/40 pl-2":""}>
+          <div
+            onClick={()=>{onSelect(node);if(hasCh)setOpen(o=>!o);}}
+            className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all mb-0.5 border ${
+              isSel?`${cols.bg} ${cols.b} border`:"border-transparent hover:bg-slate-800/60"
+            }`}
+          >
+            <span className="w-4 flex-shrink-0 text-center">
+              {hasCh
+                ?<span className={`text-xs font-bold ${cols.t}`}>{open?"▾":"▸"}</span>
+                :<span className={`inline-block w-2 h-2 rounded-full ${cols.d}`}/>}
+            </span>
+            <span className={`text-sm font-semibold leading-tight ${isSel?cols.t:"text-slate-200"}`}>{node.n}</span>
+            {node.tag&&<span className={`ml-auto text-xs border px-1.5 py-0.5 rounded-full flex-shrink-0 ${cols.b} ${cols.t} opacity-80`}>{node.tag}</span>}
+          </div>
+          {open&&hasCh&&node.c.map(ch=>(
+            <PelvisTreeNode key={ch.id} node={ch} selectedId={selectedId} onSelect={onSelect} depth={depth+1}/>
+          ))}
+        </div>
+      );
+    }
+
+    function PelvisDetailPanel({ node }) {
+      if(!node) return (
+        <div className="h-full flex flex-col items-center justify-center text-slate-500 text-center p-8">
+          <div className="text-5xl mb-4 opacity-30">🩸</div>
+          <p className="text-xl font-bold text-slate-400 mb-2">Arbre vasculaire artériel endopelvien</p>
+          <p className="text-sm">Clique sur un nœud de l'arbre vasculaire pour afficher l'exhaustivité de ses détails anatomiques, ses trajets et les pièges d'examen associés.</p>
+          <div className="mt-6 grid grid-cols-3 gap-2 text-xs w-full max-w-xs">
+            {[["Tronc POST.","text-blue-400 bg-blue-900/20"],["Tronc ANT.","text-rose-400 bg-rose-900/20"],["Pudendale","text-purple-400 bg-purple-900/20"],["Ext.","text-yellow-400 bg-yellow-900/20"],["Commune","text-orange-400 bg-orange-900/20"],["Aorte","text-red-400 bg-red-900/20"]].map(([l,cl])=>(
+              <span key={l} className={`px-2 py-1 rounded font-bold text-center ${cl}`}>{l}</span>
+            ))}
+          </div>
+        </div>
+      );
+      const cols = PELVIS_C[node.ty]||PELVIS_C.main;
+      return (
+        <div className="h-full flex flex-col overflow-hidden">
+          <div className={`flex items-start gap-3 mb-5 p-4 rounded-2xl ${cols.bg} border ${cols.b}`}>
+            <div className={`w-3 h-3 rounded-full mt-1 flex-shrink-0 ${cols.d}`}/>
+            <div>
+              <h2 className={`text-xl font-black leading-tight ${cols.t}`}>{node.n}</h2>
+              {node.tag&&<span className={`text-xs border px-2 py-0.5 rounded-full mt-1 inline-block ${cols.b} ${cols.t}`}>{node.tag}</span>}
+            </div>
+          </div>
+          <div className="flex-grow overflow-y-auto pr-2 space-y-4 custom-scrollbar">
+            <div className="bg-slate-900/50 p-5 rounded-xl border border-slate-700/50 shadow-inner">
+              <p className="text-xs font-black tracking-widest text-slate-500 uppercase mb-3">Trajet Anatomique & Vascularisation (Exhaustif)</p>
+              <p className="text-slate-200 leading-relaxed text-sm whitespace-pre-line text-justify font-medium">{node.d}</p>
+            </div>
+            {node.tr&&(
+              <div className="bg-amber-500/10 p-5 rounded-xl border border-amber-500/30 mt-4 shadow-sm">
+                <p className="text-amber-400 font-bold text-xs mb-2 flex items-center gap-2"><AlertTriangle className="w-4 h-4"/> PIÈGE DE COURS & CLINIQUE</p>
+                <p className="text-amber-100 text-sm leading-relaxed text-justify">{node.tr}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function ArterialTab() {
+      const [sel,setSel] = useState(null);
+      return (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full mt-4">
+          <div className="lg:col-span-5 bg-slate-950 rounded-2xl border border-slate-800 p-5 overflow-y-auto custom-scrollbar max-h-[70vh] shadow-2xl">
+            <p className="text-xs font-black tracking-widest text-slate-500 uppercase mb-4">Arbre vasculaire (Clique pour explorer)</p>
+            <div className="flex flex-wrap gap-1.5 mb-6">
+              {[["root","Racine"],["main","Commune"],["external","Externe"],["posterior","Tronc Post."],["anterior","Tronc Ant."],["pudendal","Pudendale"]].map(([ty,l])=>(
+                <span key={ty} className={`text-xs px-2 py-0.5 rounded-full border font-bold ${PELVIS_C[ty].t} ${PELVIS_C[ty].b} ${PELVIS_C[ty].bg}`}>{l}</span>
+              ))}
+            </div>
+            <PelvisTreeNode node={ART} selectedId={sel?.id} onSelect={setSel}/>
+          </div>
+          <div className="lg:col-span-7 bg-slate-900 rounded-2xl border border-slate-800 p-6 min-h-[60vh] shadow-2xl">
+            <PelvisDetailPanel node={sel}/>
+          </div>
+        </div>
+      );
+    }
+
+    function VenousTab() {
+      return (
+        <div className="space-y-6 pb-4 mt-4">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-slate-900 rounded-3xl border border-sky-500/20 p-6 shadow-xl">
+              <h3 className="text-sky-300 font-black mb-2 text-sm tracking-widest uppercase border-b border-sky-500/20 pb-2">Tronc ANTÉRIEUR de la veine iliaque interne</h3>
+              <p className="text-xs text-slate-400 mb-4 font-medium">Reçoit 8 affluents veineux (satellites des artères viscérales) :</p>
+              <ul className="space-y-2.5">
+                {VENOUS_TRONC_ANT.map((v,i)=>(
+                  <li key={i} className="flex items-start gap-3 text-sm bg-slate-800/40 p-2 rounded-lg border border-slate-700/50">
+                    <span className="w-5 h-5 rounded-full bg-sky-900/40 border border-sky-500/30 text-sky-300 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{i+1}</span>
+                    <div>
+                      <span className="text-slate-200 font-bold">{v.n}</span>
+                      {v.note&&<p className="text-slate-400 text-xs mt-0.5">{v.note}</p>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="bg-slate-900 rounded-3xl border border-blue-500/20 p-6 shadow-xl">
+              <h3 className="text-blue-300 font-black mb-2 text-sm tracking-widest uppercase border-b border-blue-500/20 pb-2">Tronc POSTÉRIEUR de la veine iliaque interne</h3>
+              <p className="text-xs text-slate-400 mb-4 font-medium">Reçoit 3 affluents (strictement satellites du tronc artériel postérieur) :</p>
+              <ul className="space-y-2.5 mb-6">
+                {VENOUS_TRONC_POST.map((v,i)=>(
+                  <li key={i} className="flex items-start gap-3 text-sm bg-slate-800/40 p-2 rounded-lg border border-slate-700/50">
+                    <span className="w-5 h-5 rounded-full bg-blue-900/40 border border-blue-500/30 text-blue-300 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{i+1}</span>
+                    <div>
+                      <span className="text-slate-200 font-bold">{v.n}</span>
+                      {v.note&&<p className="text-slate-400 text-xs mt-0.5">{v.note}</p>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              
+              <div className="mt-4 bg-slate-950 rounded-xl p-4 border border-slate-700 shadow-inner">
+                <p className="text-xs font-black text-slate-500 uppercase mb-3 tracking-wider">Les 3 Plexus Veineux Viscéraux</p>
+                <ul className="text-xs text-slate-300 space-y-2">
+                  {VENOUS_PLEXUS.map((p,i)=><li key={i} className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-indigo-400 rounded-full"/>{p}</li>)}
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <h3 className="text-white font-black text-xl mb-4 mt-8 flex items-center gap-3"><Activity className="text-rose-400"/> Pathologies et Syndromes Cliniques Exigibles</h3>
+          <div className="grid md:grid-cols-3 gap-6">
+            {VENOUS_CLINICAL.map((v,i)=>{
+              const bdr = v.color==="rose"?"border-rose-500/40":v.color==="sky"?"border-sky-500/40":"border-purple-500/40";
+              const hdr = v.color==="rose"?"text-rose-300":v.color==="sky"?"text-sky-300":"text-purple-300";
+              const bg = v.color==="rose"?"bg-rose-900/10":v.color==="sky"?"bg-sky-900/10":"bg-purple-900/10";
+              return (
+              <div key={i} className={`${bg} rounded-2xl border p-6 shadow-lg ${bdr}`}>
+                <div className="text-3xl mb-4">{v.icon}</div>
+                <h3 className={`font-black text-base mb-3 leading-snug ${hdr}`}>{v.title}</h3>
+                <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line text-justify font-medium">{v.d}</p>
+              </div>
+            );})}
+          </div>
+        </div>
+      );
+    }
+
+    function LymphaticTab() {
+      return (
+        <div className="space-y-6 pb-4 mt-4">
+          <div className="bg-slate-900/80 rounded-2xl border border-slate-700/60 p-6 shadow-xl text-center max-w-4xl mx-auto">
+            <p className="text-slate-300 text-base leading-relaxed font-medium">Les <span className="text-emerald-400 font-black">nœuds lymphatiques pelviens</span> s'organisent en <span className="font-black text-white px-2 py-1 bg-slate-800 rounded mx-1 border border-slate-600">2 grands groupes</span> (Profonds et Superficiels). Ils forment un vaste réseau de drainage ascendant qui conduit la lymphe vers des relais de plus en plus volumineux, remontant le long des voies iliaques et para-aortiques jusqu'au <span className="text-emerald-400 font-black">canal thoracique</span>, avant de regagner la circulation veineuse générale.</p>
+            <div className="mt-4 bg-amber-900/20 border border-amber-500/30 rounded-xl p-4 inline-block text-left">
+              <p className="text-amber-400 font-black text-sm mb-1 flex items-center gap-2"><AlertTriangle className="w-4 h-4"/> Règle Clinique Fondamentale (Métastases)</p>
+              <p className="text-amber-100 text-sm font-medium">Une tumeur située dans une zone pelvienne profonde métastasera d'abord dans le groupe ganglionnaire profond. Une lésion superficielle (ex: vulve, pénis) métastasera d'abord vers les ganglions inguinaux superficiels.</p>
+            </div>
+          </div>
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            <div className="bg-slate-900 rounded-3xl border border-emerald-500/30 p-8 shadow-2xl">
+              <h3 className="text-emerald-400 font-black mb-2 uppercase tracking-widest text-lg border-b border-emerald-500/30 pb-3">Le Groupe PROFOND</h3>
+              <p className="text-sm text-slate-400 mb-6 font-medium">Ce réseau draine la totalité des viscères pelviens intra-cavitaires ainsi que la face interne de la paroi osseuse et musculaire du pelvis.</p>
+              <p className="text-xs text-emerald-200/80 mb-3 font-black uppercase tracking-widest bg-emerald-900/30 px-3 py-1.5 rounded-lg inline-block">Topographie le long des axes :</p>
+              <ul className="space-y-3 mt-4">
+                {LYMPH_DEEP.map((l,i)=>(
+                  <li key={i} className="flex items-center gap-3 text-sm bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
+                    <span className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] flex-shrink-0"/>
+                    <span className="text-slate-200 font-bold">{l}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="bg-slate-900 rounded-3xl border border-teal-500/30 p-8 shadow-2xl flex flex-col">
+              <h3 className="text-teal-400 font-black mb-2 uppercase tracking-widest text-lg border-b border-teal-500/30 pb-3">Le Groupe SUPERFICIEL</h3>
+              <p className="text-sm text-slate-400 mb-6 font-medium">Ce réseau assure le drainage extra-pelvien des téguments et des structures les plus externes (parties génitales externes).</p>
+              <ul className="space-y-3 mb-8">
+                {LYMPH_SUPERFICIAL.map((l,i)=>(
+                  <li key={i} className="flex items-center gap-3 text-sm bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
+                    <span className="w-3 h-3 rounded-full bg-teal-500 shadow-[0_0_10px_rgba(20,184,166,0.8)] flex-shrink-0"/>
+                    <span className="text-slate-200 font-bold">{l}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-auto">
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Zones de captation viscérales (les 3 loges) :</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {LYMPH_LOGES.map(l=>(
+                    <div key={l.n} className={`bg-slate-950 border-2 rounded-2xl p-3 text-center text-xs font-black shadow-inner ${
+                      l.col==="sky"?"border-sky-500/40 text-sky-400":l.col==="pink"?"border-pink-500/40 text-pink-400":"border-amber-500/40 text-amber-400"
+                    }`}>
+                      <div className="text-3xl mb-2">{l.icon}</div>
+                      {l.n}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6 bg-rose-900/20 border-2 border-rose-500/40 rounded-2xl p-5 shadow-lg">
+                  <p className="text-rose-400 font-black text-sm mb-2 flex items-center gap-2"><AlertTriangle className="w-5 h-5"/> Le Piège des Zones Transitionnelles</p>
+                  <p className="text-rose-100/90 text-sm font-medium text-justify">Les cancers situés sur des zones de transition anatomique (par exemple, un cancer de la portion très basse de l'utérus, à la transition avec le vagin) sont d'une extrême gravité, car les cellules tumorales vont métastaser massivement en empruntant SIMULTANÉMENT les voies lymphatiques profondes et les voies superficielles.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function SomaticTab() {
+      const ps = SOMA_PLEXUS_SACRAL;
+      const pp = SOMA_PLEXUS_PUDENDAL;
+      return (
+        <div className="space-y-8 pb-8 mt-4">
+          {/* Plexus sacral */}
+          <div className="bg-slate-900 rounded-3xl border border-amber-500/30 p-8 shadow-2xl">
+            <h3 className="text-amber-400 font-black text-xl uppercase tracking-widest mb-6 flex items-center gap-3"><Activity className="w-6 h-6"/> Le Plexus Sacral</h3>
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="flex flex-col">
+                <p className="text-sm text-slate-400 font-black uppercase tracking-widest mb-4 border-b border-slate-700 pb-2">Origines & Composition</p>
+                <div className="flex flex-wrap items-center gap-3 mb-6 bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-inner">
+                  <div className="bg-amber-900/30 border-2 border-amber-500/40 rounded-xl p-4 text-center shadow-lg">
+                    <p className="text-amber-400 font-black text-sm">Tronc Lombo-Sacré</p>
+                    <p className="text-amber-200 text-xs mt-2 font-medium bg-amber-950/50 px-2 py-1 rounded">L4 (partiel) + L5</p>
+                  </div>
+                  <span className="text-slate-600 font-black text-2xl">+</span>
+                  {["S1","S2","S3"].map(s=>(
+                    <div key={s} className="bg-orange-900/30 border-2 border-orange-500/40 rounded-xl p-4 text-center min-w-14 shadow-lg">
+                      <p className="text-orange-400 font-black text-lg">{s}</p>
+                    </div>
+                  ))}
+                  <span className="text-slate-600 font-black text-2xl">→</span>
+                  <div className="bg-yellow-900/30 border-2 border-yellow-500/40 rounded-xl p-4 text-center shadow-[0_0_15px_rgba(234,179,8,0.2)]">
+                    <p className="text-yellow-400 font-black text-base uppercase tracking-widest">Plexus Sacral</p>
+                  </div>
+                </div>
+                <div className="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 mt-auto text-sm text-slate-300 leading-relaxed font-medium">
+                  <span className="text-amber-400 font-black uppercase text-xs tracking-widest block mb-2">Note Anatomique Clé :</span> {ps.nb}
+                </div>
+              </div>
+              
+              <div className="bg-slate-950 rounded-2xl border-2 border-slate-800 p-6 flex flex-col shadow-inner">
+                <p className="text-sm font-black text-white uppercase mb-5 flex items-center gap-2 border-b border-slate-800 pb-2"><GitFork className="w-5 h-5 text-sky-400"/> Le Nerf Sciatique (Branche majeure)</p>
+                <div className="space-y-4 flex-grow">
+                  {[
+                    ["Nature du nerf", ps.sciatique.type, "text-slate-200 font-bold"],
+                    ["Sortie pelvienne", ps.sciatique.sortie, "text-rose-400 font-black bg-rose-950/30 px-2 py-1 rounded border border-rose-500/20 inline-block mt-1"],
+                    ["Trajet complet", ps.sciatique.trajet, "text-slate-300 font-medium text-justify"],
+                    ["Topographie des Dermatomes", ps.sciatique.dermatomes, "text-sky-300 font-bold text-justify"],
+                  ].map(([label,val,col])=>(
+                    <div key={label}>
+                      <p className="text-xs text-slate-500 font-black uppercase tracking-wider mb-1">{label}</p>
+                      <p className={`text-sm leading-relaxed ${col}`}>{val}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6 bg-rose-900/20 border border-rose-500/40 rounded-xl p-4 shadow-md">
+                  <p className="text-rose-400 font-black text-sm mb-2 flex items-center gap-2"><AlertTriangle className="w-4 h-4"/> Application Clinique</p>
+                  <p className="text-rose-100/90 text-sm leading-relaxed font-medium text-justify">{ps.sciatique.clinical}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Plexus pudendal */}
+          <div className="bg-slate-900 rounded-3xl border border-purple-500/30 p-8 shadow-2xl mt-8">
+            <h3 className="text-purple-400 font-black text-xl uppercase tracking-widest mb-6 flex items-center gap-3"><Activity className="w-6 h-6"/> Le Plexus Pudendal (Nerf Pudendal)</h3>
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="flex flex-col">
+                <div className="bg-purple-950/40 border-2 border-purple-500/40 rounded-2xl p-5 mb-6 shadow-lg text-center">
+                  <p className="text-purple-300 font-black text-lg tracking-widest uppercase">{pp.composition}</p>
+                </div>
+                <div className="mb-6 bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                  <p className="text-xs text-slate-400 mb-2 font-black uppercase tracking-widest">Caractère Physiologique</p>
+                  <p className="text-slate-200 text-sm font-medium text-justify">{pp.caractere}</p>
+                  <p className="text-xs text-slate-400 mt-4 mb-2 font-black uppercase tracking-widest">Trajet en lacet</p>
+                  <p className="text-slate-200 text-sm font-medium text-justify">{pp.trajet}</p>
+                </div>
+                <p className="text-xs text-purple-300 mb-3 font-black uppercase tracking-widest border-b border-purple-500/20 pb-2">Les 3 branches terminales spécifiques</p>
+                <div className="space-y-3 flex-grow">
+                  {pp.branches.map((b,i)=>(
+                    <div key={i} className="bg-slate-950 rounded-xl p-4 border border-purple-500/20 shadow-inner">
+                      <p className="text-purple-400 font-black text-sm mb-2">{b.n}</p>
+                      <p className="text-slate-300 text-sm leading-relaxed font-medium text-justify">{b.role}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-slate-950 rounded-2xl border-2 border-slate-800 p-6 flex flex-col items-center justify-center shadow-inner">
+                <p className="text-sm font-black text-white uppercase tracking-widest mb-4 w-full text-left border-b border-slate-800 pb-2">Les Dermatomes Sacrés (Région Périnéale)</p>
+                <div className="relative flex items-center justify-center bg-slate-900 rounded-2xl border border-slate-700 p-6 mb-6 w-full h-[250px] shadow-lg">
+                  {/* Schéma circulaire SVG des dermatomes */}
+                  <svg viewBox="0 0 200 180" className="w-full h-full max-w-sm">
+                    <ellipse cx="100" cy="90" rx="90" ry="70" fill="#7f1d1d" fillOpacity="0.3" stroke="#ef4444" strokeWidth="2"/>
+                    <text x="100" y="30" textAnchor="middle" fill="#fca5a5" fontSize="12" fontWeight="bold">S2 (Périphérie)</text>
+                    <ellipse cx="100" cy="90" rx="68" ry="52" fill="#92400e" fillOpacity="0.3" stroke="#f59e0b" strokeWidth="2"/>
+                    <text x="100" y="48" textAnchor="middle" fill="#fcd34d" fontSize="12" fontWeight="bold">S3</text>
+                    <ellipse cx="100" cy="90" rx="46" ry="35" fill="#1e3a5f" fillOpacity="0.4" stroke="#38bdf8" strokeWidth="2"/>
+                    <text x="100" y="64" textAnchor="middle" fill="#7dd3fc" fontSize="12" fontWeight="bold">S4</text>
+                    <ellipse cx="100" cy="90" rx="26" ry="20" fill="#1e1b4b" fillOpacity="0.6" stroke="#818cf8" strokeWidth="2"/>
+                    <text x="100" y="84" textAnchor="middle" fill="#a5b4fc" fontSize="12" fontWeight="bold">S5</text>
+                    <ellipse cx="100" cy="93" rx="6" ry="5" fill="#312e81"/>
+                    <text x="100" y="97" textAnchor="middle" fill="#c7d2fe" fontSize="7">Anus</text>
+                    <text x="100" y="170" textAnchor="middle" fill="#64748b" fontSize="9" fontWeight="bold">Organisation concentrique en 'Cible'</text>
+                    <text x="175" y="90" textAnchor="start" fill="#94a3b8" fontSize="8" fontWeight="bold">Avant</text>
+                    <line x1="165" y1="90" x2="173" y2="90" stroke="#94a3b8" strokeWidth="1"/>
+                  </svg>
+                </div>
+                <div className="w-full bg-indigo-950/40 border border-indigo-500/40 rounded-xl p-4 text-sm text-indigo-200 leading-relaxed font-medium text-justify mb-4">
+                  <span className="font-black text-indigo-400 block mb-1 uppercase tracking-widest text-xs">Topographie Unique :</span> {pp.dermatomes}
+                </div>
+                <div className="w-full bg-slate-800/80 rounded-xl p-4 border border-slate-600 text-sm text-slate-300 font-medium text-justify">
+                  <span className="font-black text-white block mb-1 uppercase tracking-widest text-xs">Clinique Pratique :</span> {pp.clinical}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function AutonomicTab() {
+      return (
+        <div className="space-y-8 pb-8 mt-4">
+          {/* Rappel SNA */}
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="bg-slate-900 rounded-3xl border border-red-500/30 p-8 shadow-2xl flex flex-col">
+              <h3 className="text-red-400 font-black text-lg uppercase tracking-widest mb-4 border-b border-red-500/20 pb-3 flex items-center gap-2"><Activity className="w-5 h-5"/> Système Sympathique</h3>
+              <p className="text-xs text-red-300/80 font-black tracking-widest uppercase mb-4 bg-red-950/50 inline-block px-3 py-1 rounded">Origine Thoraco-Lombaire (T1 à L2/L3)</p>
+              <div className="space-y-4 text-sm text-slate-300 font-medium text-justify flex-grow">
+                <p>Le corps cellulaire du premier neurone (préganglionnaire) se situe exclusivement dans la <span className="text-red-400 font-black bg-slate-950 px-2 py-0.5 rounded border border-red-500/30">corne intermédio-latérale</span> de la moelle spinale thoracique et lombaire haute.</p>
+                <p>La fibre chemine dans la <span className="font-black text-white">racine antérieure</span> motrice du nerf spinal, puis emprunte le rameau communicant blanc. Dès lors, elle a deux choix :</p>
+                <ul className="ml-4 space-y-2 bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-inner">
+                  <li className="flex items-start gap-2"><span className="text-red-500 mt-0.5">●</span> Faire immédiatement synapse dans le ganglion de la <span className="text-red-400 font-bold">chaîne paravertébrale</span> à ce niveau.</li>
+                  <li className="flex items-start gap-2"><span className="text-red-500 mt-0.5">●</span> Se déplacer verticalement le long de cette chaîne (l'ascenseur) pour faire synapse à un étage supérieur (cervical) ou inférieur (sacré).</li>
+                </ul>
+                <p className="mt-4">→ La fibre postganglionnaire repart ensuite par le <span className="font-black text-white border-b border-slate-500">rameau communicant gris</span> vers sa cible.</p>
+                
+                <div className="bg-red-950/40 border border-red-500/50 rounded-xl p-4 mt-6 shadow-lg">
+                  <p className="text-red-400 font-black text-sm mb-2 uppercase tracking-widest flex items-center gap-2"><AlertTriangle className="w-4 h-4"/> Exception : Les Nerfs Splanchniques</p>
+                  <p className="text-sm text-red-100/90 leading-relaxed">Ce sont des fibres préganglionnaires qui traversent les ganglions paravertébraux <span className="font-black underline">SANS y faire synapse</span>. Elles poursuivent leur route et iront faire relais beaucoup plus loin, dans les ganglions des grands plexus pré-aortiques (prévertébraux). On les retrouve aux étages thoracique, lombaire et pelvien.</p>
+                </div>
+              </div>
+              <div className="mt-6 bg-slate-800 p-3 rounded-xl border border-slate-700 text-center">
+                <p className="text-sm text-slate-400 font-bold">Dans le SNA Sympathique : <span className="text-white font-black">Fibre PRÉ courte</span> / <span className="text-red-400 font-black">Fibre POST longue</span>.</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-900 rounded-3xl border border-blue-500/30 p-8 shadow-2xl flex flex-col">
+              <h3 className="text-blue-400 font-black text-lg uppercase tracking-widest mb-4 border-b border-blue-500/20 pb-3 flex items-center gap-2"><Brain className="w-5 h-5"/> Système Parasympathique</h3>
+              <p className="text-xs text-blue-300/80 font-black tracking-widest uppercase mb-4 bg-blue-950/50 inline-block px-3 py-1 rounded">Origine Crânio-Sacrale</p>
+              <div className="space-y-4 text-sm text-slate-300 font-medium text-justify flex-grow">
+                <p>Au niveau pelvien, les corps cellulaires des neurones préganglionnaires sacrés (S2, S3, S4) sont situés en position <span className="text-blue-400 font-black bg-slate-950 px-2 py-0.5 rounded border border-blue-500/30">médiale</span> dans la moelle spinale sacrée.</p>
+                <p>Leur axone (fibre préganglionnaire) est extrêmement long. Il chemine jusqu'à la cible sans faire de relais intermédiaire précoce.</p>
+                <p>La synapse avec le second neurone (postganglionnaire, fonctionnant toujours à l'<span className="font-black text-white">acétylcholine</span>) s'effectue directement dans un ganglion végétatif situé <span className="text-blue-400 font-black border-b border-blue-500/50">tout près de l'organe viscéral, voire à l'intérieur de sa paroi</span> (plexus intramuraux).</p>
+                
+                <div className="bg-blue-950/40 border border-blue-500/50 rounded-xl p-4 mt-6 shadow-lg">
+                  <p className="text-blue-400 font-black text-sm mb-2 uppercase tracking-widest flex items-center gap-2"><Target className="w-4 h-4"/> Le Plexus Hypogastrique Supérieur (PHS)</p>
+                  <p className="text-sm text-blue-100/90 leading-relaxed">C'est un carrefour nerveux situé très haut, près de la bifurcation de l'aorte abdominale (entre les deux artères iliaques communes). Contrairement à ce qu'on pourrait penser, il est <span className="font-black underline">presque exclusivement composé de fibres SYMPATHIQUES</span> destinées à descendre dans le pelvis.</p>
+                </div>
+              </div>
+              <div className="mt-6 bg-slate-800 p-3 rounded-xl border border-slate-700 text-center">
+                <p className="text-sm text-slate-400 font-bold">Dans le SNA Parasympathique : <span className="text-blue-400 font-black">Fibre PRÉ longue</span> / <span className="text-white font-black">Fibre POST courte</span>.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* PHI */}
+          <div className="bg-slate-900 rounded-3xl border border-violet-500/30 p-8 shadow-2xl mt-8">
+            <h3 className="text-violet-400 font-black text-2xl uppercase tracking-widest mb-6 text-center border-b border-violet-500/20 pb-4">Le Plexus Hypogastrique Inférieur (PHI)</h3>
+            
+            <div className="bg-violet-950/30 border-2 border-violet-500/40 rounded-2xl p-6 mb-8 text-base text-violet-200 leading-relaxed font-medium text-justify shadow-inner">
+              <span className="text-violet-300 font-black uppercase text-lg tracking-widest block mb-2">Le cerveau du pelvis :</span>
+              Le PHI est une volumineuse lame nerveuse de forme <span className="font-black text-white">rectangulaire</span>, située en position latéro-viscérale, bilatérale et strictement intra-pelvienne. Il s'étend profondément d'avant en arrière, venant innerver les viscères des 3 loges (urinaire, génitale, digestive). C'est un carrefour intriqué où se <span className="font-black text-white underline">mélangent inextricablement les efférences sympathiques et parasympathiques</span>. Il est macroscopiquement impossible de les disséquer individuellement.
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              <div className="bg-slate-950 border border-red-500/30 rounded-2xl p-6 shadow-lg">
+                <p className="text-red-400 font-black text-base mb-4 uppercase tracking-widest border-b border-red-900 pb-2">Les Apports SYMPATHIQUES au PHI</p>
+                <ul className="space-y-3 text-sm text-slate-300 font-medium">
+                  <li className="flex items-start gap-3"><span className="text-red-500 text-lg leading-none">■</span> La chaîne ganglionnaire paravertébrale, qui se prolonge dans le pelvis (où l'on retrouve 4 ganglions sacrés).</li>
+                  <li className="flex items-start gap-3"><span className="text-red-500 text-lg leading-none">■</span> Les fibres descendantes issues de la chaîne pré-vertébrale aortique (via les nerfs splanchniques pelviens et le nerf hypogastrique).</li>
+                  <li className="flex items-start gap-3 bg-slate-900 p-3 rounded-lg border border-slate-700 mt-2"><span className="text-amber-400 text-lg leading-none">★</span> <span className="italic">Le <span className="text-white font-black not-italic">Nerf Vague (X)</span>, bien qu'il soit un nerf crânien parasympathique, envoie quelques fibres qui se mêlent paradoxalement aux plexus sympathiques de l'abdomen pour rejoindre le PHI.</span></li>
+                </ul>
+              </div>
+              <div className="bg-slate-950 border border-blue-500/30 rounded-2xl p-6 shadow-lg">
+                <p className="text-blue-400 font-black text-base mb-4 uppercase tracking-widest border-b border-blue-900 pb-2">Les Apports PARASYMPATHIQUES au PHI</p>
+                <ul className="space-y-3 text-sm text-slate-300 font-medium">
+                  <li className="flex items-start gap-3"><span className="text-blue-500 text-lg leading-none">■</span> Les neurones préganglionnaires dont les corps cellulaires sont logés dans la moelle sacrée (<span className="text-white font-black">S2, S3 et S4</span>).</li>
+                  <li className="flex items-start gap-3"><span className="text-blue-500 text-lg leading-none">■</span> Ces racines s'individualisent pour former 3 nerfs pelviens très spécifiques : les <span className="text-blue-400 font-black uppercase">nerfs érecteurs</span> (d'Eckhardt).</li>
+                  <li className="flex items-start gap-3 bg-slate-900 p-3 rounded-lg border border-slate-700 mt-2"><span className="text-emerald-400 text-lg leading-none">✓</span> Ils apportent l'influx vital pour déclencher l'érection des organes génitaux, la vidange de la vessie (miction) et du rectum (défécation).</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Table fonctions PHI */}
+            <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-inner">
+              <p className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">Tableau d'antagonisme fonctionnel du PHI</p>
+              <div className="overflow-x-auto rounded-xl border border-slate-700">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-900 border-b-2 border-slate-700">
+                      <th className="p-4 text-left text-white font-black uppercase tracking-widest w-1/4">Fonction Viscérale</th>
+                      <th className="p-4 text-left text-blue-400 font-black uppercase tracking-widest w-3/8 border-l border-slate-700/50 bg-blue-900/10">Action PARASYMPATHIQUE (S2-S4)</th>
+                      <th className="p-4 text-left text-red-400 font-black uppercase tracking-widest w-3/8 border-l border-slate-700/50 bg-red-900/10">Action SYMPATHIQUE (T1-L2)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="font-medium text-justify">
+                    {AUTO_PHI_FUNCTIONS.map((row,i)=>(
+                      <tr key={i} className={i%2===0?"bg-slate-800/40":"bg-slate-800/80"}>
+                        <td className="p-4 font-black text-white border-r border-slate-700/50">{row.f}</td>
+                        <td className="p-4 text-blue-200 border-r border-slate-700/50 leading-relaxed bg-blue-900/5">{row.para}</td>
+                        <td className="p-4 text-red-200 leading-relaxed bg-red-900/5">{row.sympa}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-5 bg-amber-900/30 border border-amber-500/40 rounded-xl p-4 text-sm text-amber-100 font-medium flex gap-3 shadow-md">
+                <AlertTriangle className="w-6 h-6 text-amber-400 flex-shrink-0 mt-0.5"/>
+                <p><span className="font-black text-amber-400 uppercase tracking-widest">Enjeu Chirurgical :</span> Le PHI étant un tissu extrêmement dense et collé aux organes (notamment rectum et prostate/vagin), les lourdes chirurgies d'exérèse pelvienne (ex: cancer du rectum) lèsent très fréquemment ce plexus. Conséquence dramatique : le patient se réveille avec une incontinence (ou rétention) urinaire et fécale, ainsi qu'une impuissance sexuelle irréversible.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Lames sacro-pubiennes */}
+          <div className="bg-slate-900 rounded-3xl border border-slate-700/60 p-8 shadow-2xl mt-8">
+            <h3 className="text-white font-black text-xl uppercase tracking-widest mb-4 border-b border-slate-700 pb-3">L'Emballage Tissulaire : Lames Sacro-Pubiennes & Septa</h3>
+            <p className="text-base text-slate-300 mb-6 font-medium text-justify leading-relaxed">Dans le volume confiné du petit bassin (entre les détroits supérieur et inférieur), le PHI n'est pas un nerf libre : il est emprisonné et engainé dans d'épaisses travées de tissu conjonctif fibreux (collagène) tendues de la face postérieure du <span className="text-white font-black bg-slate-800 px-2 rounded">PUBIS</span> jusqu'à la face antérieure du <span className="text-white font-black bg-slate-800 px-2 rounded">SACRUM</span>. Ce sont les redoutables <span className="text-emerald-400 font-black uppercase">lames sacro-pubiennes</span> (droite et gauche). Elles se placent en dedans des muscles de la paroi et se glissent littéralement entre les viscères, rendant toute dissection nerveuse impossible sans couper le tissu de soutien.</p>
+            
+            <p className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">Les 3 Septa Pelviens (Bandeaux transversaux de liaison) :</p>
+            <div className="grid md:grid-cols-3 gap-5">
+              {AUTO_SEPTA.map((s,i)=>(
+                <div key={i} className="bg-slate-950 border-2 border-slate-800 rounded-2xl p-5 shadow-lg transform transition hover:-translate-y-1">
+                  <div className="text-3xl mb-3">{s.icon}</div>
+                  <p className="font-black text-white text-base mb-2 uppercase">{s.n}</p>
+                  <p className="text-slate-400 text-sm leading-relaxed font-medium text-justify">{s.pos}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 bg-slate-800 p-4 rounded-xl border border-slate-600 text-sm text-slate-300 italic font-medium">
+              <span className="font-black text-white not-italic">Exemple clinique direct :</span> La face postérieure de la paroi vaginale n'est pas directement au contact musculo-muqueux avec la face antérieure du rectum. Le robuste septum recto-vaginal s'interpose entre les deux, constituant un fascia chirurgical de clivage indispensable.
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function RecapTabPelvis() {
+      return (
+        <div className="space-y-6 pb-8 mt-4">
+          
+          {/* Récap artériel */}
+          <div className="bg-slate-900 rounded-3xl border border-slate-700/60 p-8 shadow-xl">
+            <h3 className="text-white font-black text-xl uppercase tracking-widest mb-6 border-b border-slate-700 pb-3 flex items-center gap-3">🩸 Arbre Vasculaire Exigible (QCM)</h3>
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
+              <div className="bg-blue-950/30 border-2 border-blue-500/30 rounded-2xl p-6 shadow-inner">
+                <p className="text-blue-400 font-black text-sm uppercase tracking-widest mb-4 bg-blue-900/40 inline-block px-3 py-1 rounded-lg">Tronc POSTÉRIEUR (Pariétal)</p>
+                <ul className="space-y-3">
+                  {RECAP_TRONC_POST.map((a,i)=><li key={i} className="flex items-start gap-3 text-sm text-slate-200 font-medium"><span className="text-blue-500 text-lg leading-none mt-0.5">■</span>{a}</li>)}
+                </ul>
+              </div>
+              <div className="bg-rose-950/30 border-2 border-rose-500/30 rounded-2xl p-6 shadow-inner">
+                <p className="text-rose-400 font-black text-sm uppercase tracking-widest mb-4 bg-rose-900/40 inline-block px-3 py-1 rounded-lg">Tronc ANTÉRIEUR (Viscéral)</p>
+                <ul className="space-y-3">
+                  {RECAP_TRONC_ANT.map((a,i)=><li key={i} className="flex items-start gap-3 text-sm text-slate-200 font-medium"><span className="text-rose-500 text-lg leading-none mt-0.5">■</span>{a}</li>)}
+                </ul>
+              </div>
+            </div>
+            <div className="bg-purple-950/40 border-2 border-purple-500/40 rounded-2xl p-6 shadow-lg">
+              <p className="text-purple-300 font-black text-sm uppercase tracking-widest mb-4">La cascade des branches de l'Artère Pudendale (dans l'ordre du flux)</p>
+              <div className="flex flex-wrap gap-3">
+                {RECAP_PUDENDAL_BRANCHES.map((b,i)=>(
+                  <div key={i} className="flex items-center gap-3 bg-purple-900/40 border border-purple-500/30 rounded-xl px-4 py-2 shadow-md">
+                    <span className="text-purple-400 font-black text-lg bg-purple-950/80 w-8 h-8 flex items-center justify-center rounded-full border border-purple-500/50">{i+1}</span>
+                    <div className="flex flex-col">
+                      <span className="text-white font-black text-sm">{b.n}</span>
+                      <span className="text-purple-300/80 text-xs font-medium">{b.note}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Récap innervation */}
+          <div className="bg-slate-900 rounded-3xl border border-slate-700/60 p-8 shadow-xl">
+            <h3 className="text-white font-black text-xl uppercase tracking-widest mb-6 border-b border-slate-700 pb-3 flex items-center gap-3">⚡ Architecture Nerveuse Centrale</h3>
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
+              <div className="bg-amber-950/30 border-2 border-amber-500/30 rounded-2xl p-6 shadow-inner space-y-4">
+                <p className="text-amber-400 font-black text-sm uppercase tracking-widest">Le grand Plexus Sacral</p>
+                <div className="font-mono text-sm bg-slate-950 p-4 rounded-xl border border-slate-800 text-slate-300 shadow-md">
+                  L4 (petite contrib.) <span className="text-amber-500">+</span> L5 <span className="text-amber-500 font-bold">→ Tronc lombo-sacré</span>
+                </div>
+                <div className="font-mono text-sm bg-slate-950 p-4 rounded-xl border border-slate-800 text-slate-300 shadow-md">
+                  Tronc lombo-sacré <span className="text-amber-500">+</span> S1 <span className="text-amber-500">+</span> S2 <span className="text-amber-500">+</span> S3 <span className="text-amber-500 font-bold">→ Plexus Sacral (Nerf Sciatique)</span>
+                </div>
+              </div>
+              <div className="bg-purple-950/30 border-2 border-purple-500/30 rounded-2xl p-6 shadow-inner space-y-4">
+                <p className="text-purple-400 font-black text-sm uppercase tracking-widest">Le Plexus Pudendal</p>
+                <div className="font-mono text-sm bg-slate-950 p-4 rounded-xl border border-slate-800 text-slate-300 shadow-md">
+                  S2 <span className="text-purple-500">+</span> S3 <span className="text-purple-500">+</span> S4 <span className="text-purple-500 font-bold">→ Plexus Pudendal → Nerf pudendal</span>
+                </div>
+                <p className="text-sm text-slate-300 font-medium bg-slate-900 p-3 rounded-lg border border-slate-800">
+                  <span className="font-black text-white">Rôle :</span> Majoritairement sensitif (dermatomes cibles) + donne 3 branches périnéales terminales.
+                </p>
+              </div>
+            </div>
+            <div className="bg-violet-950/40 border-2 border-violet-500/40 rounded-2xl p-6 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex-grow">
+                <p className="text-violet-400 font-black text-sm uppercase tracking-widest mb-3">La Végétative : Les nerfs érecteurs d'Eckhardt</p>
+                <p className="font-mono text-sm bg-slate-950 p-4 rounded-xl border border-slate-800 text-slate-200 shadow-inner">
+                  Noyaux sacrés <span className="text-violet-400 font-bold">S2, S3, S4</span> → Nerfs érecteurs (x3) → <span className="text-white font-bold">Plexus Hypogastrique Inférieur</span>
+                </p>
+              </div>
+              <div className="bg-violet-900/50 p-4 rounded-xl border border-violet-400/50 text-center flex-shrink-0">
+                <p className="text-xs text-violet-200 font-black uppercase tracking-widest mb-1">Pouvoir Parasympathique</p>
+                <p className="text-sm text-white font-black">ÉRECTION + MICTION + DÉFÉCATION</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Récap points clefs */}
+          <div className="bg-slate-950 rounded-3xl border-2 border-amber-500/40 p-8 shadow-2xl">
+            <h3 className="text-amber-400 font-black text-2xl uppercase tracking-widest mb-6 flex items-center justify-center gap-3 text-center"><AlertTriangle className="w-8 h-8"/> L'Antisèche Ultime (Les 8 Pièges Classiques)</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              {[
+                ["La bifurcation iliaque","Se fait strictement en regard de la partie haute de l'articulation sacro-iliaque (pas L5-S1).","orange"],
+                ["NAV dans le trigone fémoral","L'ordre de LATÉRAL (dehors) à MÉDIAL (dedans) est : Nerf / Artère / Veine. Le nerf fémoral est le plus externe !","blue"],
+                ["Foramen supra vs infra piriforme","Glutéale SUP → SUPRA-piriforme. Le Sciatique, la glutéale INF et la pudendale → INFRA-piriforme.","rose"],
+                ["L'Artère pudendale interne","Trajet en 3 temps : Sort par infra-piriforme, contourne l'épine ischiatique par l'arrière, puis rentre par la petite ouverture sciatique pour filer dans le canal d'Alcock.","purple"],
+                ["Rectale inférieure","C'est la SEULE branche qui naît AVANT l'entrée du nerf/artère dans le canal pudendal.","amber"],
+                ["Syndrome de Cockett","La Veine Iliaque Commune gauche passe EN ARRIÈRE de l'Artère Iliaque Commune droite (qui l'écrase).","red"],
+                ["Varicocèle gauche","La veine gonadique gauche se jette à angle droit dans la veine rénale gauche = mauvaise valvule = varicocèle très fréquente à gauche.","sky"],
+                ["Les dermatomes sacrés périnéaux","Ils sont organisés en cercles concentriques (en 'cible') : S5 est sur l'anus, puis on s'éloigne vers S4, S3, S2. Ce ne sont pas des bandes longitudinales comme sur les jambes !","teal"],
+              ].map(([t,d,col])=>(
+                <div key={t} className={`rounded-2xl p-5 border-2 shadow-md flex flex-col justify-center ${
+                  col==="blue"?"bg-blue-950/40 border-blue-500/40":
+                  col==="rose"?"bg-rose-950/40 border-rose-500/40":
+                  col==="purple"?"bg-purple-950/40 border-purple-500/40":
+                  col==="amber"?"bg-amber-950/40 border-amber-500/40":
+                  col==="red"?"bg-red-950/40 border-red-500/40":
+                  col==="sky"?"bg-sky-950/40 border-sky-500/40":
+                  col==="teal"?"bg-teal-950/40 border-teal-500/40":
+                  "bg-orange-950/40 border-orange-500/40"
+                }`}>
+                  <p className={`font-black text-sm mb-2 uppercase tracking-wide ${
+                    col==="blue"?"text-blue-400":col==="rose"?"text-rose-400":col==="purple"?"text-purple-400":
+                    col==="amber"?"text-amber-400":col==="red"?"text-red-400":col==="sky"?"text-sky-400":
+                    col==="teal"?"text-teal-400":"text-orange-400"
+                  }`}>{t}</p>
+                  <p className="text-slate-200 text-sm leading-relaxed font-medium text-justify">{d}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const TABS_PELVIS = [
+      { id:"arterial",  label:"Vasc. Artérielle", emoji:"🩸" },
+      { id:"venous",    label:"Vasc. Veineuse",   emoji:"🔵" },
+      { id:"lymphatic", label:"Lymphatiques",     emoji:"🟢" },
+      { id:"somatic",   label:"Nerfs Somatiques", emoji:"⚡" },
+      { id:"autonomic", label:"SNA Autonome",     emoji:"🧠" },
+      { id:"recap",     label:"Récap Examen",     emoji:"📋" },
+    ];
+
+    function PelvisSection() {
+      const [tab, setTab] = useState("arterial");
+      return (
+        <div className="bg-slate-900 text-slate-200 p-2 font-sans w-full" style={{fontFamily:"system-ui,sans-serif"}}>
+          {/* Tabs internes au Pelvis */}
+          <div className="flex flex-wrap gap-2 mb-6 justify-center bg-slate-950 p-2 rounded-2xl border border-slate-800 shadow-inner w-fit mx-auto">
+            {TABS_PELVIS.map(t=>(
+              <button
+                key={t.id}
+                onClick={()=>setTab(t.id)}
+                className={`px-4 py-2.5 rounded-xl font-bold text-sm transition-all border-2 flex items-center gap-2 ${
+                  tab===t.id
+                    ?"bg-red-600/20 border-red-500/50 text-red-300 shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+                    :"bg-transparent border-transparent text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                }`}
+              >
+                <span className="text-lg">{t.emoji}</span>
+                <span className="hidden md:inline">{t.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Content */}
+          <div className="animate-in fade-in duration-300">
+            {tab==="arterial"  && <ArterialTab/>}
+            {tab==="venous"    && <VenousTab/>}
+            {tab==="lymphatic" && <LymphaticTab/>}
+            {tab==="somatic"   && <SomaticTab/>}
+            {tab==="autonomic" && <AutonomicTab/>}
+            {tab==="recap"     && <RecapTabPelvis/>}
+          </div>
+        </div>
+      );
+    }
+
+    /* --- APP PRINCIPALE --- */
+    function App() {
+      const [activeTab, setActiveTab] = useState("pelvis");
+      const [selectedItem, setSelectedItem] = useState(null);
+      
+      // Filtre exclusif pour l'appareil digestif
+      const [digestiveFilter, setDigestiveFilter] = useState("all");
+
+      const handleSelect = (item) => setSelectedItem(item);
+
+      const getOp = (mobility) => {
+        if (digestiveFilter === "all") return 1;
+        return digestiveFilter === mobility ? 1 : 0.15;
+      };
+
+      const getCol = (mobility) => mobility === "mobile" ? "#ec4899" : "#0ea5e9";
+
+      return (
+        <div className="min-h-screen bg-slate-900 text-slate-200 font-sans p-4 md:p-8 selection:bg-indigo-500 selection:text-white overflow-x-hidden flex flex-col">
+          
+          {/* HEADER */}
+          <div className="max-w-7xl mx-auto mb-10 text-center flex-shrink-0">
+            <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 mb-4 flex items-center justify-center gap-4">
+              <Brain className="w-12 h-12 text-indigo-400" />
+              Anatomie Pro : Objectif Major
+            </h1>
+            <p className="text-slate-400 max-w-3xl mx-auto text-lg">
+              Cartographies topographiques exhaustives. Cible les pièges d'examen, les fascias et la clinique intégrée (Tours 2026).
+            </p>
+          </div>
+
+          {/* TABS PRINCIPALES */}
+          <div className="max-w-7xl mx-auto flex flex-wrap gap-3 mb-10 justify-center flex-shrink-0">
+            {[
+              { id: "pelvis", icon: Activity, label: "Pelvis (Vascu & Innerv.)", color: "red" },
+              { id: "digestif", icon: Layers, label: "Appareil Digestif", color: "fuchsia" },
+              { id: "willis", icon: Target, label: "Polygone de Willis", color: "indigo" },
+              { id: "ace", icon: GitFork, label: "Carotide Externe", color: "pink" },
+              { id: "brainstem", icon: UserCircle, label: "Tronc Cérébral", color: "emerald" }
+            ].map(tab => {
+              const isActive = activeTab === tab.id;
+              const baseClass = "px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all flex items-center gap-3 border-2 ";
+              const activeClass = "bg-" + tab.color + "-500/20 border-" + tab.color + "-400 text-" + tab.color + "-300 shadow-[0_0_25px_rgba(var(--tw-colors-" + tab.color + "-500),0.3)] transform scale-105";
+              const inactiveClass = "bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500 hover:bg-slate-800/80 hover:text-slate-200";
+
+              return (
+                <button 
+                  key={tab.id}
+                  onClick={() => { setActiveTab(tab.id); setSelectedItem(null); }}
+                  className={baseClass + (isActive ? activeClass : inactiveClass)}
+                >
+                  <tab.icon className="w-5 h-5" /> {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* --- CONTENT CONTAINER --- */}
+          <div className="max-w-7xl mx-auto w-full flex-grow flex flex-col">
+
+            {/* --- TAB: PELVIS --- */}
+            {activeTab === "pelvis" && (
+              <PelvisSection />
+            )}
+
+            {/* --- TAB: APPAREIL DIGESTIF --- */}
+            {activeTab === "digestif" && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch animate-in fade-in duration-500">
+                
+                {/* SVG SCHEMATIC */}
+                <div className="lg:col-span-5 bg-slate-950 p-6 rounded-3xl border border-slate-800 shadow-2xl relative flex flex-col items-center overflow-hidden min-h-[600px]">
+                  
+                  {/* Top Controls */}
+                  <div className="absolute top-4 w-full px-6 flex justify-between items-center z-10">
+                    <div className="text-slate-500 font-black tracking-widest text-xs">PÉRITOINE</div>
+                    <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-800">
+                      <button onClick={() => setDigestiveFilter("fixe")} className={"px-3 py-1 text-xs font-bold rounded-md transition-colors " + (digestiveFilter === "fixe" ? "bg-sky-500 text-white" : "text-slate-400 hover:text-white")}>FIXES</button>
+                      <button onClick={() => setDigestiveFilter("mobile")} className={"px-3 py-1 text-xs font-bold rounded-md transition-colors " + (digestiveFilter === "mobile" ? "bg-pink-500 text-white" : "text-slate-400 hover:text-white")}>MOBILES</button>
+                      <button onClick={() => setDigestiveFilter("all")} className={"px-3 py-1 text-xs font-bold rounded-md transition-colors " + (digestiveFilter === "all" ? "bg-slate-700 text-white" : "text-slate-400 hover:text-white")}>TOUS</button>
+                    </div>
+                  </div>
+
+                  <svg viewBox="0 0 400 650" className="w-full max-w-sm mt-12 mb-4 h-full">
+                    <defs>
+                      <filter id="glowDig" filterUnits="userSpaceOnUse" x="-100" y="-100" width="600" height="800">
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                      </filter>
+                    </defs>
+
+                    {/* Foie (Fixe) */}
+                    <path d="M 190 80 L 100 130 L 100 80 Z" fill={getCol("fixe")} opacity={getOp("fixe")} stroke="#fff" strokeWidth="2" filter="url(#glowDig)" className="cursor-pointer transition-all duration-500 hover:brightness-125" onClick={() => handleSelect(digestiveData.foie)} />
+                    <text x="120" y="100" fill="#fff" fontSize="10" fontWeight="bold" opacity={getOp("fixe")}>Foie</text>
+
+                    {/* Œsophage (Fixe) */}
+                    <line x1="200" y1="30" x2="200" y2="80" stroke={getCol("fixe")} opacity={getOp("fixe")} strokeWidth="10" strokeLinecap="round" filter="url(#glowDig)" className="cursor-pointer transition-all duration-500 hover:brightness-125" onClick={() => handleSelect(digestiveData.oesophage)} />
+
+                    {/* Estomac (Mobile) */}
+                    <path d="M 200 80 L 260 80 L 280 130 L 230 160 L 190 100 Z" fill={getCol("mobile")} opacity={getOp("mobile")} stroke="#fff" strokeWidth="2" filter="url(#glowDig)" className="cursor-pointer transition-all duration-500 hover:brightness-125" onClick={() => handleSelect(digestiveData.estomac)} />
+                    <text x="220" y="110" fill="#fff" fontSize="10" fontWeight="bold" opacity={getOp("mobile")}>Estomac</text>
+
+                    {/* Pancréas (Fixe) */}
+                    <rect x="165" y="170" width="90" height="30" rx="8" fill={getCol("fixe")} opacity={getOp("fixe")} stroke="#fff" strokeWidth="2" filter="url(#glowDig)" className="cursor-pointer transition-all duration-500 hover:brightness-125" onClick={() => handleSelect(digestiveData.pancreas)} />
+                    <text x="180" y="190" fill="#fff" fontSize="10" fontWeight="bold" opacity={getOp("fixe")}>Pancréas</text>
+
+                    {/* Duodénum (Fixe) */}
+                    <path d="M 230 160 L 150 160 L 150 215 L 230 215 L 230 185" fill="none" stroke={getCol("fixe")} opacity={getOp("fixe")} strokeWidth="12" strokeLinejoin="round" filter="url(#glowDig)" className="cursor-pointer transition-all duration-500 hover:brightness-125" onClick={() => handleSelect(digestiveData.duodenum)} />
+                    <circle cx="150" cy="187" r="14" fill="transparent" className="cursor-pointer" onClick={() => handleSelect(digestiveData.duodenum)} />
+                    <text x="100" y="190" fill="#fff" fontSize="10" fontWeight="bold" opacity={getOp("fixe")}>Duodénum</text>
+
+                    {/* Jéjunum (Mobile) */}
+                    <path d="M 230 215 L 260 230 L 160 245 L 270 260 L 150 280 L 250 300" fill="none" stroke={getCol("mobile")} opacity={getOp("mobile")} strokeWidth="12" strokeLinejoin="round" strokeLinecap="round" filter="url(#glowDig)" className="cursor-pointer transition-all duration-500 hover:brightness-125" onClick={() => handleSelect(digestiveData.jejunum)} />
+                    <text x="210" y="250" fill="#fff" fontSize="12" fontWeight="black" opacity={getOp("mobile")}>Jéjunum</text>
+
+                    {/* Iléum (Mobile) */}
+                    <path d="M 250 300 L 210 320 L 240 350 L 190 370 L 220 400 L 130 400" fill="none" stroke={getCol("mobile")} opacity={getOp("mobile")} strokeWidth="12" strokeLinejoin="round" strokeLinecap="round" filter="url(#glowDig)" className="cursor-pointer transition-all duration-500 hover:brightness-125" onClick={() => handleSelect(digestiveData.ileum)} />
+                    <text x="220" y="360" fill="#fff" fontSize="12" fontWeight="black" opacity={getOp("mobile")}>Iléum</text>
+
+                    {/* Côlon Ascendant (Fixe) */}
+                    <path d="M 120 420 L 120 270" fill="none" stroke={getCol("fixe")} opacity={getOp("fixe")} strokeWidth="18" strokeLinecap="round" filter="url(#glowDig)" className="cursor-pointer transition-all duration-500 hover:brightness-125" onClick={() => handleSelect(digestiveData.colon_droit)} />
+                    <circle cx="120" cy="410" r="14" fill={getCol("fixe")} opacity={getOp("fixe")} className="cursor-pointer" onClick={() => handleSelect(digestiveData.colon_droit)} />
+                    
+                    {/* Côlon Transverse (Mobile) */}
+                    <path d="M 120 270 L 290 250" fill="none" stroke={getCol("mobile")} opacity={getOp("mobile")} strokeWidth="18" strokeLinecap="round" filter="url(#glowDig)" className="cursor-pointer transition-all duration-500 hover:brightness-125" onClick={() => handleSelect(digestiveData.transverse)} />
+
+                    {/* Côlon Descendant (Fixe) */}
+                    <path d="M 290 250 L 290 430" fill="none" stroke={getCol("fixe")} opacity={getOp("fixe")} strokeWidth="18" strokeLinecap="round" filter="url(#glowDig)" className="cursor-pointer transition-all duration-500 hover:brightness-125" onClick={() => handleSelect(digestiveData.colon_gauche)} />
+
+                    {/* Côlon Sigmoïde (Mobile) */}
+                    <path d="M 290 430 C 290 480, 200 430, 200 510" fill="none" stroke={getCol("mobile")} opacity={getOp("mobile")} strokeWidth="18" strokeLinecap="round" filter="url(#glowDig)" className="cursor-pointer transition-all duration-500 hover:brightness-125" onClick={() => handleSelect(digestiveData.sigmoide)} />
+
+                    {/* Rectum (Fixe) */}
+                    <line x1="200" y1="510" x2="200" y2="590" stroke={getCol("fixe")} opacity={getOp("fixe")} strokeWidth="22" strokeLinecap="round" filter="url(#glowDig)" className="cursor-pointer transition-all duration-500 hover:brightness-125" onClick={() => handleSelect(digestiveData.rectum)} />
+                    
+                  </svg>
+                </div>
+
+                {/* INFO PANEL */}
+                <div className="lg:col-span-7 flex flex-col gap-6">
+                   {selectedItem ? (
+                    <div className="bg-slate-800 p-8 rounded-3xl border border-slate-700 h-full flex flex-col relative overflow-hidden shadow-2xl">
+                      
+                      {/* Badge décoratif */}
+                      <div className={"absolute -top-10 -right-10 w-40 h-40 blur-3xl opacity-20 rounded-full " + (selectedItem.mobility === "mobile" ? "bg-pink-500" : "bg-sky-500")}></div>
+
+                      <div className="flex justify-between items-start mb-6 relative z-10">
+                        <h2 className="text-3xl font-black text-white leading-tight">
+                          {selectedItem.name}
+                        </h2>
+                        {selectedItem.mobility === "mobile" ? (
+                          <span className="bg-pink-500/20 text-pink-300 border border-pink-500/30 px-4 py-1.5 rounded-xl font-bold flex items-center gap-2">
+                            <GitFork className="w-4 h-4"/> Portion Mobile (Méso)
+                          </span>
+                        ) : (
+                          <span className="bg-sky-500/20 text-sky-300 border border-sky-500/30 px-4 py-1.5 rounded-xl font-bold flex items-center gap-2">
+                            <Target className="w-4 h-4"/> Portion Fixe (Accolement)
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Scrollable content area */}
+                      <div className="space-y-6 flex-grow relative z-10 overflow-y-auto pr-4 custom-scrollbar max-h-[600px]">
+                        
+                        <div className="bg-slate-900/50 p-5 rounded-2xl border border-slate-700 shadow-inner">
+                          <h3 className="text-xs font-black tracking-widest text-slate-500 uppercase mb-2">Péritoine & Moyen d'Attache</h3>
+                          <p className={"text-lg font-bold " + (selectedItem.mobility === "mobile" ? "text-pink-400" : "text-sky-400")}>
+                            {selectedItem.attach}
+                          </p>
+                        </div>
+
+                        <div>
+                          <h3 className="text-xs font-black tracking-widest text-slate-500 uppercase mb-3 border-b border-slate-700 pb-2">Embryologie, Topographie & Vascularisation</h3>
+                          <p className="text-slate-200 leading-relaxed text-lg text-justify font-medium">{selectedItem.desc}</p>
+                        </div>
+
+                        {selectedItem.trap && (
+                          <div className="bg-rose-500/10 p-6 rounded-2xl border border-rose-500/30 mt-6 shadow-sm">
+                            <h3 className="text-rose-400 font-bold flex items-center gap-2 mb-3"><AlertTriangle className="w-5 h-5"/> Piège d'Examen & Pathologie Clinique</h3>
+                            <p className="text-rose-100 leading-relaxed font-medium text-justify text-lg">{selectedItem.trap}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-slate-800/50 p-8 rounded-3xl border border-slate-700/50 border-dashed h-full flex flex-col items-center justify-center text-slate-500 text-center shadow-inner">
+                      <Layers className="w-20 h-20 mb-6 opacity-20" />
+                      <p className="text-2xl font-bold text-slate-400 mb-4">La Topographie Abdominale Complète</p>
+                      <p className="text-lg font-medium text-slate-500 mb-6 max-w-lg">Clique sur un organe ou utilise les filtres supérieurs pour isoler les fascias d'accolement et les mésos.</p>
+                      <div className="flex gap-4 mb-8">
+                        <span className="bg-sky-900/40 text-sky-400 border border-sky-500/30 px-4 py-2 rounded-xl font-bold text-sm shadow-md">Bleu = Fixe (Méso accolé / Sac)</span>
+                        <span className="bg-pink-900/40 text-pink-400 border border-pink-500/30 px-4 py-2 rounded-xl font-bold text-sm shadow-md">Rose = Mobile (Mésos/Omentums)</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* --- TAB: WILLIS --- */}
+            {activeTab === "willis" && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch animate-in fade-in duration-500">
+                <div className="lg:col-span-5 bg-slate-950 p-8 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden flex justify-center items-center min-h-[600px]">
+                  <div className="absolute top-6 left-6 text-slate-500 font-black tracking-widest text-sm">VUE INFÉRIEURE</div>
+                  
+                  <svg viewBox="0 0 500 500" className="w-full max-w-lg">
+                    <defs>
+                      <filter id="glowWillis" filterUnits="userSpaceOnUse" x="-100" y="-100" width="700" height="700">
+                        <feGaussianBlur stdDeviation="6" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                      </filter>
+                    </defs>
+
+                    <circle cx="250" cy="250" r="200" fill="none" stroke="#1e293b" strokeWidth="2" strokeDasharray="10,10" />
+                    <polygon points="250,100 350,250 250,320 150,250" fill="none" stroke="#1e293b" strokeWidth="1" />
+
+                    <line x1="210" y1="120" x2="290" y2="120.1" stroke={selectedItem?.id === "acoa" ? "#818cf8" : "#cbd5e1"} strokeWidth={selectedItem?.id === "acoa" ? "12" : "6"} strokeLinecap="round" filter="url(#glowWillis)" className="cursor-pointer transition-all duration-300 hover:stroke-indigo-400" onClick={() => handleSelect(willisData.acoa)} />
+                    <path d="M 210 120 L 210.1 70" fill="none" stroke={selectedItem?.id === "aca" ? "#818cf8" : "#cbd5e1"} strokeWidth="6" strokeLinecap="round" filter="url(#glowWillis)" className="cursor-pointer transition-all hover:stroke-indigo-400" onClick={() => handleSelect(willisData.aca)} />
+                    <path d="M 290 120 L 290.1 70" fill="none" stroke={selectedItem?.id === "aca" ? "#818cf8" : "#cbd5e1"} strokeWidth="6" strokeLinecap="round" filter="url(#glowWillis)" className="cursor-pointer transition-all hover:stroke-indigo-400" onClick={() => handleSelect(willisData.aca)} />
+                    <path d="M 180 200 L 210 120" fill="none" stroke={selectedItem?.id === "aca" ? "#818cf8" : "#cbd5e1"} strokeWidth="6" strokeLinecap="round" filter="url(#glowWillis)" className="cursor-pointer transition-all hover:stroke-indigo-400" onClick={() => handleSelect(willisData.aca)} />
+                    <path d="M 320 200 L 290 120" fill="none" stroke={selectedItem?.id === "aca" ? "#818cf8" : "#cbd5e1"} strokeWidth="6" strokeLinecap="round" filter="url(#glowWillis)" className="cursor-pointer transition-all hover:stroke-indigo-400" onClick={() => handleSelect(willisData.aca)} />
+                    <path d="M 180 200 L 70 170" fill="none" stroke={selectedItem?.id === "acm" ? "#f43f5e" : "#94a3b8"} strokeWidth="6" strokeLinecap="round" strokeDasharray="8,4" filter="url(#glowWillis)" className="cursor-pointer transition-all hover:stroke-rose-400" onClick={() => handleSelect(willisData.acm)} />
+                    <path d="M 320 200 L 430 170" fill="none" stroke={selectedItem?.id === "acm" ? "#f43f5e" : "#94a3b8"} strokeWidth="6" strokeLinecap="round" strokeDasharray="8,4" filter="url(#glowWillis)" className="cursor-pointer transition-all hover:stroke-rose-400" onClick={() => handleSelect(willisData.acm)} />
+                    <path d="M 180 200 L 220 280" fill="none" stroke={selectedItem?.id === "acop" ? "#818cf8" : "#cbd5e1"} strokeWidth="6" strokeLinecap="round" filter="url(#glowWillis)" className="cursor-pointer transition-all hover:stroke-indigo-400" onClick={() => handleSelect(willisData.acop)} />
+                    <path d="M 320 200 L 280 280" fill="none" stroke={selectedItem?.id === "acop" ? "#818cf8" : "#cbd5e1"} strokeWidth="6" strokeLinecap="round" filter="url(#glowWillis)" className="cursor-pointer transition-all hover:stroke-indigo-400" onClick={() => handleSelect(willisData.acop)} />
+                    <path d="M 250 310 L 220 280 L 120 320" fill="none" stroke={selectedItem?.id === "acp" ? "#818cf8" : "#cbd5e1"} strokeWidth="6" strokeLinejoin="round" strokeLinecap="round" filter="url(#glowWillis)" className="cursor-pointer transition-all hover:stroke-indigo-400" onClick={() => handleSelect(willisData.acp)} />
+                    <path d="M 250 310 L 280 280 L 380 320" fill="none" stroke={selectedItem?.id === "acp" ? "#818cf8" : "#cbd5e1"} strokeWidth="6" strokeLinejoin="round" strokeLinecap="round" filter="url(#glowWillis)" className="cursor-pointer transition-all hover:stroke-indigo-400" onClick={() => handleSelect(willisData.acp)} />
+                    <line x1="250" y1="310" x2="250.1" y2="440" stroke={selectedItem?.id === "basilaire" ? "#f43f5e" : "#94a3b8"} strokeWidth="12" strokeLinecap="round" filter="url(#glowWillis)" className="cursor-pointer transition-all hover:stroke-rose-400" onClick={() => handleSelect(willisData.basilaire)} />
+
+                    <circle cx="180" cy="200" r="12" fill="#0f172a" stroke={selectedItem?.id === "aci" ? "#818cf8" : "#cbd5e1"} strokeWidth="6" filter="url(#glowWillis)" className="cursor-pointer hover:stroke-indigo-300 transition-all" onClick={() => handleSelect(willisData.aci)} />
+                    <circle cx="320" cy="200" r="12" fill="#0f172a" stroke={selectedItem?.id === "aci" ? "#818cf8" : "#cbd5e1"} strokeWidth="6" filter="url(#glowWillis)" className="cursor-pointer hover:stroke-indigo-300 transition-all" onClick={() => handleSelect(willisData.aci)} />
+                    <circle cx="210" cy="120" r="4" fill="#fff" />
+                    <circle cx="290" cy="120" r="4" fill="#fff" />
+                    <circle cx="220" cy="280" r="4" fill="#fff" />
+                    <circle cx="280" cy="280" r="4" fill="#fff" />
+                    <circle cx="250" cy="310" r="6" fill="#fff" />
+                  </svg>
+                </div>
+
+                <div className="lg:col-span-7 flex flex-col gap-6">
+                  {selectedItem ? (
+                    <div className="bg-slate-800 p-8 rounded-3xl border border-slate-700 h-full flex flex-col shadow-2xl">
+                      <h2 className="text-3xl font-black text-white mb-6 leading-tight">{selectedItem.name}</h2>
+                      
+                      {selectedItem.inPolygon ? (
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/20 text-indigo-300 rounded-xl font-bold mb-6 border border-indigo-500/30">
+                          <CheckCircle2 className="w-5 h-5" /> Inclus dans le Polygone
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-rose-500/20 text-rose-300 rounded-xl font-bold mb-6 border border-rose-500/30">
+                          <XCircle className="w-5 h-5" /> HORS du Polygone (Échappement)
+                        </div>
+                      )}
+
+                      <div className="space-y-6 flex-grow overflow-y-auto pr-4 custom-scrollbar">
+                        <div>
+                          <h3 className="text-xs font-black tracking-widest text-slate-500 uppercase mb-3 border-b border-slate-700 pb-2">Description Anatomique Exhaustive</h3>
+                          <p className="text-slate-200 leading-relaxed text-lg text-justify font-medium">{selectedItem.desc}</p>
+                        </div>
+                        <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-700/50 mt-4 shadow-inner">
+                          <h3 className="text-indigo-400 font-bold flex items-center gap-2 mb-3"><Activity className="w-5 h-5"/> Clinique & Territoire Ischémique</h3>
+                          <p className="text-slate-200 leading-relaxed text-lg text-justify font-medium">{selectedItem.territory}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-slate-800/50 p-8 rounded-3xl border border-slate-700/50 border-dashed h-full flex flex-col items-center justify-center text-slate-500 text-center shadow-inner">
+                      <Target className="w-20 h-20 mb-6 opacity-20" />
+                      <p className="text-2xl font-bold text-slate-400 mb-4">Le Cercle Anastomotique de Willis</p>
+                      <p className="text-lg font-medium text-slate-500 max-w-lg">Clique sur une artère du plan pour révéler ses territoires lexicaux et ses pathologies associées (AVC, Anévrismes).</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* --- TAB: CAROTIDE EXTERNE --- */}
+            {activeTab === "ace" && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch animate-in fade-in duration-500">
+                <div className="lg:col-span-5 bg-slate-950 p-8 rounded-3xl border border-slate-800 shadow-2xl relative flex justify-center items-center min-h-[600px]">
+                  <div className="absolute top-6 left-6 text-slate-500 font-black tracking-widest text-sm">ARBRE CAROTIDIEN (Lat. Droit)</div>
+                  
+                  <svg viewBox="0 0 400 600" className="w-full max-w-sm">
+                    <defs>
+                      <filter id="glowAce" filterUnits="userSpaceOnUse" x="-100" y="-100" width="600" height="800">
+                        <feGaussianBlur stdDeviation="4" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                      </filter>
+                    </defs>
+
+                    <path d="M 50 350 L 100 350 L 120 200" fill="none" stroke="#1e293b" strokeWidth="20" strokeLinecap="round" strokeLinejoin="round" />
+                    <circle cx="280" cy="220" r="20" fill="#1e293b" />
+                    <text x="140" y="440" fill="#475569" fontSize="12" fontWeight="bold">C4 (Cartilage Thyroïde)</text>
+                    <line x1="130" y1="420" x2="300" y2="420" stroke="#334155" strokeDasharray="4,4" />
+
+                    <path d="M 220 580 L 220.1 420" fill="none" stroke={selectedItem?.name === aceData.acc.name ? "#f472b6" : "#be185d"} strokeWidth="14" strokeLinecap="round" filter="url(#glowAce)" className="cursor-pointer transition-all hover:stroke-pink-400" onClick={() => handleSelect(aceData.acc)} />
+                    <circle cx="220" cy="420" r="10" fill="#fbcfe8" />
+
+                    <path d="M 220 420 L 200 200 L 180 100" fill="none" stroke={selectedItem?.name === aceData.aci.name ? "#38bdf8" : "#475569"} strokeWidth="10" strokeDasharray="10,5" strokeLinecap="round" strokeLinejoin="round" filter="url(#glowAce)" className="cursor-pointer transition-all hover:stroke-sky-400" onClick={() => handleSelect(aceData.aci)} />
+
+                    <path d="M 220 420 L 250 250 L 250 150" fill="none" stroke={selectedItem?.name === aceData.acc.name ? "#f472b6" : "#be185d"} strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" filter="url(#glowAce)" />
+
+                    <path d="M 228 380 Q 150 400 130 450" fill="none" stroke={selectedItem?.name === aceData.thyroidienne.name ? "#f472b6" : "#e11d48"} strokeWidth="6" strokeLinecap="round" filter="url(#glowAce)" className="cursor-pointer transition-all hover:stroke-pink-400" onClick={() => handleSelect(aceData.thyroidienne)} />
+                    <path d="M 235 340 Q 140 330 100 360" fill="none" stroke={selectedItem?.name === aceData.linguale.name ? "#f472b6" : "#e11d48"} strokeWidth="6" strokeLinecap="round" filter="url(#glowAce)" className="cursor-pointer transition-all hover:stroke-pink-400" onClick={() => handleSelect(aceData.linguale)} />
+                    <path d="M 242 290 Q 150 290 80 200" fill="none" stroke={selectedItem?.name === aceData.faciale.name ? "#f472b6" : "#e11d48"} strokeWidth="7" strokeLinecap="round" filter="url(#glowAce)" className="cursor-pointer transition-all hover:stroke-pink-400" onClick={() => handleSelect(aceData.faciale)} />
+
+                    <path d="M 238 360 Q 280 340 300 280" fill="none" stroke={selectedItem?.name === aceData.pharyngienne.name ? "#f472b6" : "#9f1239"} strokeWidth="5" strokeLinecap="round" filter="url(#glowAce)" className="cursor-pointer transition-all hover:stroke-pink-400" onClick={() => handleSelect(aceData.pharyngienne)} />
+                    <path d="M 245 320 Q 300 290 330 340" fill="none" stroke={selectedItem?.name === aceData.occipitale.name ? "#f472b6" : "#9f1239"} strokeWidth="6" strokeLinecap="round" filter="url(#glowAce)" className="cursor-pointer transition-all hover:stroke-pink-400" onClick={() => handleSelect(aceData.occipitale)} />
+                    <path d="M 250 260 Q 300 240 320 200" fill="none" stroke={selectedItem?.name === aceData.auriculaire.name ? "#f472b6" : "#9f1239"} strokeWidth="5" strokeLinecap="round" filter="url(#glowAce)" className="cursor-pointer transition-all hover:stroke-pink-400" onClick={() => handleSelect(aceData.auriculaire)} />
+
+                    <path d="M 250 150 L 250.1 50" fill="none" stroke={selectedItem?.name === aceData.temporale.name ? "#f472b6" : "#fb7185"} strokeWidth="8" strokeLinecap="round" filter="url(#glowAce)" className="cursor-pointer transition-all hover:stroke-pink-400" onClick={() => handleSelect(aceData.temporale)} />
+                    <path d="M 250 150 Q 180 120 100 80" fill="none" stroke={selectedItem?.name === aceData.maxillaire.name ? "#f472b6" : "#fb7185"} strokeWidth="9" strokeLinecap="round" filter="url(#glowAce)" className="cursor-pointer transition-all hover:stroke-pink-400" onClick={() => handleSelect(aceData.maxillaire)} />
+                  </svg>
+                </div>
+
+                <div className="lg:col-span-7 flex flex-col gap-6">
+                   {selectedItem ? (
+                    <div className="bg-slate-800 p-8 rounded-3xl border border-slate-700 h-full flex flex-col shadow-2xl">
+                      <h2 className="text-3xl font-black text-white mb-6 leading-tight">{selectedItem.name}</h2>
+                      <div className="space-y-6 flex-grow overflow-y-auto pr-4 custom-scrollbar">
+                        <div>
+                          <h3 className="text-xs font-black tracking-widest text-slate-500 uppercase mb-3 border-b border-slate-700 pb-2">Trajet Anatomique & Vascularisation Complète</h3>
+                          <p className="text-slate-200 leading-relaxed text-lg text-justify font-medium">{selectedItem.desc}</p>
+                        </div>
+                        {selectedItem.trap && (
+                          <div className="bg-rose-500/10 p-6 rounded-2xl border border-rose-500/30 mt-6 shadow-sm">
+                            <h3 className="text-rose-400 font-bold flex items-center gap-2 mb-3"><AlertTriangle className="w-5 h-5"/> Le Piège de l'Examinateur</h3>
+                            <p className="text-rose-100 leading-relaxed font-medium text-justify text-lg">{selectedItem.trap}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-slate-800/50 p-8 rounded-3xl border border-slate-700/50 border-dashed h-full flex flex-col items-center justify-center text-slate-500 text-center shadow-inner">
+                      <GitFork className="w-20 h-20 mb-6 opacity-20" />
+                      <p className="text-2xl font-bold text-slate-400 mb-4">L'Arbre Carotidien Cervical</p>
+                      <p className="text-lg font-medium text-slate-500 max-w-lg mb-4">Clique sur l'arbre vasculaire pour analyser le trajet de chaque collatérale (Antérieures, Postérieures, Terminales).</p>
+                      <p className="text-sm text-slate-600 border border-slate-700 p-3 rounded-lg bg-slate-900/50 shadow-md">Le pointillé gris-bleu représente l'Artère Carotide Interne (qui s'échappe vers le crâne sans donner de branche).</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* --- TAB: TRONC CÉRÉBRAL & NERFS --- */}
+            {activeTab === "brainstem" && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch animate-in fade-in duration-500">
+                <div className="lg:col-span-5 bg-slate-950 p-6 rounded-3xl border border-slate-800 shadow-2xl relative flex flex-col items-center min-h-[600px]">
+                  <div className="absolute top-6 left-6 text-slate-500 font-black tracking-widest text-sm">TRONC CÉRÉBRAL (Vue Ant.)</div>
+                  
+                  <div 
+                    className={"mt-10 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all w-3/4 text-center font-bold " + (selectedItem && selectedItem.name.includes("Olfactif") ? "border-amber-400 bg-amber-400/20 text-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.3)]" : "border-slate-700 bg-slate-800 text-slate-400 hover:border-amber-500/50 hover:bg-slate-800/80")}
+                    onClick={() => handleSelect(brainstemData.n12)}
+                  >
+                    Cerveau: Nerfs I et II <Info className="inline w-4 h-4 ml-1" />
+                  </div>
+
+                  <svg viewBox="0 0 300 500" className="w-full max-w-[280px] mt-4 flex-grow">
+                    <defs>
+                      <filter id="glowBrain" filterUnits="userSpaceOnUse" x="-100" y="-100" width="500" height="700">
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                      </filter>
+                    </defs>
+
+                    <path d="M 100 50 L 200 50 L 220 120 L 150 140 L 80 120 Z" fill="#064e3b" stroke={selectedItem?.name === "Mésencéphale" ? "#34d399" : "#10b981"} strokeWidth="4" strokeLinejoin="round" className="cursor-pointer transition-all hover:fill-emerald-900" onClick={() => handleSelect(brainstemData.mesencephale)} />
+                    <rect x="60" y="140" width="180" height="120" rx="60" fill="#064e3b" stroke={selectedItem?.name?.includes("Pont") ? "#34d399" : "#10b981"} strokeWidth="4" className="cursor-pointer transition-all hover:fill-emerald-900" onClick={() => handleSelect(brainstemData.pont)} />
+                    <line x1="150" y1="140" x2="150.1" y2="260" stroke="#047857" strokeWidth="4" strokeDasharray="6,6" />
+                    <path d="M 100 260 L 200 260 L 180 450 L 120 450 Z" fill="#064e3b" stroke={selectedItem?.name?.includes("Bulbe") ? "#34d399" : "#10b981"} strokeWidth="4" strokeLinejoin="round" className="cursor-pointer transition-all hover:fill-emerald-900" onClick={() => handleSelect(brainstemData.bulbe)} />
+                    <line x1="150" y1="260" x2="150.1" y2="450" stroke="#10b981" strokeWidth="2" />
+
+                    <rect x="125" y="270" width="20" height="120" rx="10" fill="#047857" stroke={selectedItem?.name?.includes("Pyramide") ? "#6ee7b7" : "none"} strokeWidth="3" className="cursor-pointer transition-all hover:fill-emerald-600" onClick={() => handleSelect(brainstemData.pyramide)} />
+                    <rect x="155" y="270" width="20" height="120" rx="10" fill="#047857" stroke={selectedItem?.name?.includes("Pyramide") ? "#6ee7b7" : "none"} strokeWidth="3" className="cursor-pointer transition-all hover:fill-emerald-600" onClick={() => handleSelect(brainstemData.pyramide)} />
+
+                    <ellipse cx="105" cy="320" rx="12" ry="25" fill="#059669" stroke={selectedItem?.name?.includes("Olive") ? "#6ee7b7" : "none"} strokeWidth="3" className="cursor-pointer transition-all hover:fill-emerald-500" onClick={() => handleSelect(brainstemData.olive)} />
+                    <ellipse cx="195" cy="320" rx="12" ry="25" fill="#059669" stroke={selectedItem?.name?.includes("Olive") ? "#6ee7b7" : "none"} strokeWidth="3" className="cursor-pointer transition-all hover:fill-emerald-500" onClick={() => handleSelect(brainstemData.olive)} />
+
+                    {/* Nerfs */}
+                    <circle cx="140" cy="110" r="5" fill="#fbbf24" filter="url(#glowBrain)" className="cursor-pointer" onClick={() => handleSelect(nervesData.find(n=>n.id==="III"))} />
+                    <circle cx="160" cy="110" r="5" fill="#fbbf24" filter="url(#glowBrain)" className="cursor-pointer" onClick={() => handleSelect(nervesData.find(n=>n.id==="III"))} />
+                    <text x="175" y="115" fill="#fcd34d" fontSize="11" fontWeight="bold">III</text>
+
+                    <path d="M 120 70 Q 90 90 80 110" fill="none" stroke="#fbbf24" strokeWidth="3" strokeDasharray="4,2" filter="url(#glowBrain)" className="cursor-pointer" onClick={() => handleSelect(nervesData.find(n=>n.id==="IV"))} />
+                    <text x="60" y="80" fill="#fcd34d" fontSize="11" fontWeight="bold">IV</text>
+
+                    <circle cx="70" cy="200" r="8" fill="#fbbf24" filter="url(#glowBrain)" className="cursor-pointer" onClick={() => handleSelect(nervesData.find(n=>n.id==="V"))} />
+                    <circle cx="230" cy="200" r="8" fill="#fbbf24" filter="url(#glowBrain)" className="cursor-pointer" onClick={() => handleSelect(nervesData.find(n=>n.id==="V"))} />
+                    <text x="45" y="205" fill="#fcd34d" fontSize="12" fontWeight="bold">V</text>
+
+                    <circle cx="135" cy="265" r="4.5" fill="#fbbf24" filter="url(#glowBrain)" className="cursor-pointer" onClick={() => handleSelect(nervesData.find(n=>n.id==="VI"))} />
+                    <text x="130" y="255" fill="#fcd34d" fontSize="10" fontWeight="bold">VI</text>
+
+                    <circle cx="115" cy="265" r="4.5" fill="#fbbf24" filter="url(#glowBrain)" className="cursor-pointer" onClick={() => handleSelect(nervesData.find(n=>n.id==="VII"))} />
+                    <text x="110" y="255" fill="#fcd34d" fontSize="10" fontWeight="bold">VII</text>
+
+                    <circle cx="95" cy="265" r="4.5" fill="#fbbf24" filter="url(#glowBrain)" className="cursor-pointer" onClick={() => handleSelect(nervesData.find(n=>n.id==="VIII"))} />
+                    <text x="85" y="255" fill="#fcd34d" fontSize="10" fontWeight="bold">VIII</text>
+
+                    <circle cx="120" cy="320" r="3.5" fill="#fbbf24" filter="url(#glowBrain)" className="cursor-pointer" onClick={() => handleSelect(nervesData.find(n=>n.id==="XII"))} />
+                    <text x="127" y="324" fill="#fcd34d" fontSize="10" fontWeight="bold">XII</text>
+
+                    <circle cx="85" cy="300" r="3.5" fill="#fbbf24" filter="url(#glowBrain)" className="cursor-pointer" onClick={() => handleSelect(nervesData.find(n=>n.id==="IX"))} />
+                    <text x="65" y="304" fill="#fcd34d" fontSize="10" fontWeight="bold">IX</text>
+
+                    <circle cx="85" cy="320" r="3.5" fill="#fbbf24" filter="url(#glowBrain)" className="cursor-pointer" onClick={() => handleSelect(nervesData.find(n=>n.id==="X"))} />
+                    <text x="65" y="324" fill="#fcd34d" fontSize="10" fontWeight="bold">X</text>
+
+                    <circle cx="85" cy="340" r="3.5" fill="#fbbf24" filter="url(#glowBrain)" className="cursor-pointer" onClick={() => handleSelect(nervesData.find(n=>n.id==="XI"))} />
+                    <text x="65" y="344" fill="#fcd34d" fontSize="10" fontWeight="bold">XI</text>
+                  </svg>
+                </div>
+
+                <div className="lg:col-span-7 flex flex-col gap-6">
+                   {selectedItem ? (
+                    <div className="bg-slate-800 p-8 rounded-3xl border border-slate-700 h-full flex flex-col shadow-2xl">
+                      <div className="flex justify-between items-start mb-6">
+                        <h2 className="text-3xl font-black text-white leading-tight">
+                          {selectedItem.id ? <span className="text-emerald-400 mr-2">Nerf {selectedItem.id}:</span> : null}
+                          {selectedItem.name}
+                        </h2>
+                        {selectedItem.type && <span className="bg-slate-700 text-slate-300 px-3 py-1 rounded-lg text-sm font-bold shadow-inner">{selectedItem.type}</span>}
+                      </div>
+                      
+                      <div className="space-y-6 flex-grow overflow-y-auto pr-4 custom-scrollbar">
+                        {selectedItem.origin && (
+                          <div>
+                            <h3 className="text-xs font-black tracking-widest text-slate-500 uppercase mb-3 border-b border-slate-700 pb-2">Origine Apparente & Topographie</h3>
+                            <p className="text-slate-200 leading-relaxed text-lg text-justify font-medium">{selectedItem.origin || selectedItem.desc}</p>
+                          </div>
+                        )}
+                        {selectedItem.function && (
+                          <div>
+                            <h3 className="text-xs font-black tracking-widest text-slate-500 uppercase mb-3 border-b border-slate-700 pb-2">Composantes & Fonctions</h3>
+                            <p className="text-emerald-200 font-medium leading-relaxed text-lg text-justify">{selectedItem.function}</p>
+                          </div>
+                        )}
+                        {selectedItem.trap && (
+                          <div className="bg-amber-500/10 p-6 rounded-2xl border border-amber-500/30 mt-6 shadow-sm">
+                            <h3 className="text-amber-400 font-bold flex items-center gap-2 mb-3"><AlertTriangle className="w-5 h-5"/> Le Piège de l'Examinateur</h3>
+                            <p className="text-amber-100 leading-relaxed font-medium text-justify text-lg">{selectedItem.trap}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-slate-800/50 p-8 rounded-3xl border border-slate-700/50 border-dashed h-full flex flex-col items-center justify-center text-slate-500 text-center shadow-inner">
+                      <UserCircle className="w-20 h-20 mb-6 opacity-20" />
+                      <p className="text-2xl font-bold text-slate-400 mb-4">Anatomie du Tronc Cérébral</p>
+                      <p className="text-lg font-medium text-slate-500 max-w-lg mb-6">Clique sur un relief anatomique (zones vertes) ou sur le point d'émergence d'un nerf crânien (points jaunes).</p>
+                      <p className="text-sm text-slate-600 border border-slate-700 p-3 rounded-lg bg-slate-900/50 shadow-md">Les textes ont été entièrement revus pour garantir l'exhaustivité du programme de neuroanatomie.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+      </div>
+    </div>
+  );
+}
+
+    // --- RENDER ---
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
