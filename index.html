@@ -29,6 +29,49 @@
   --r: 10px;
 }
 
+/* ── AJOUT MODE SOMBRE ──────────────────────────────────── */
+[data-theme="dark"] {
+  --ink: #f0f6fc;
+  --ink-2: #c9d1d9;
+  --ink-3: #8b949e;
+  --muted: #8b949e;
+  --muted-2: #6e7681;
+  --line: #30363d;
+  --line-2: #21262d;
+  --surface: #010409;
+  --white: #0d1117;
+  --blue: #3b82f6;
+  --blue-light: rgba(59, 130, 246, 0.15);
+  --blue-dark: #60a5fa;
+  --green: #2ea043;
+  --green-light: rgba(46, 160, 67, 0.15);
+  --red: #f85149;
+  --red-light: rgba(248, 81, 73, 0.15);
+  --amber: #d29922;
+  --amber-light: rgba(210, 153, 34, 0.15);
+}
+
+.theme-toggle {
+  background: none;
+  border: none;
+  color: var(--white);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+.theme-toggle:hover { background: rgba(255,255,255,0.1); }
+
+[data-theme="dark"] .json-input-wrap textarea { background: var(--surface); color: var(--ink); }
+[data-theme="dark"] .json-input-wrap textarea:focus { background: var(--white); }
+[data-theme="dark"] .badge-qru { border-color: rgba(243, 215, 140, 0.3); }
+[data-theme="dark"] .format-pre { color: var(--ink-2); background: #000; }
+[data-theme="dark"] .step-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.5); }
+/* ───────────────────────────────────────────────────────── */
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -38,12 +81,13 @@ body {
   min-height: 100vh;
   font-size: 15px;
   line-height: 1.6;
+  transition: background 0.3s, color 0.3s;
 }
 
 /* ── TOPBAR ─────────────────────────────────────────────── */
 .topbar {
-  background: var(--ink);
-  color: var(--white);
+  background: #0d1117; /* Fixé en noir même en mode clair */
+  color: #ffffff;
   height: 56px;
   display: flex;
   align-items: center;
@@ -111,7 +155,7 @@ body {
   border-radius: var(--r);
   padding: 28px 32px;
   position: relative;
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, background 0.3s, border-color 0.3s;
 }
 .step-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.07); }
 
@@ -143,7 +187,7 @@ body {
   width: 100%;
   padding: 14px 20px;
   background: var(--ink);
-  color: var(--white);
+  color: var(--surface);
   border: none;
   border-radius: 8px;
   font-family: 'Syne', sans-serif;
@@ -158,7 +202,7 @@ body {
   letter-spacing: 0.2px;
 }
 .btn-prompt:hover { background: var(--ink-3); transform: translateY(-1px); }
-.btn-prompt.copied { background: var(--green); }
+.btn-prompt.copied { background: var(--green); color: #fff; }
 
 .info-hint {
   margin-top: 14px;
@@ -183,7 +227,7 @@ body {
   color: var(--ink-2);
   background: var(--surface);
   resize: vertical;
-  transition: border-color 0.2s, background 0.2s;
+  transition: border-color 0.2s, background 0.2s, color 0.3s;
   line-height: 1.6;
 }
 .json-input-wrap textarea:focus {
@@ -206,7 +250,7 @@ body {
   width: 100%;
   padding: 16px;
   background: var(--blue);
-  color: var(--white);
+  color: #fff;
   border: none;
   border-radius: 8px;
   font-family: 'Syne', sans-serif;
@@ -259,7 +303,7 @@ body {
 
 .score-pill {
   background: var(--ink);
-  color: var(--white);
+  color: var(--surface);
   padding: 7px 16px;
   border-radius: 99px;
   font-family: 'Syne', sans-serif;
@@ -288,6 +332,7 @@ body {
   border-radius: var(--r);
   padding: 32px;
   margin-bottom: 16px;
+  transition: background 0.3s, border-color 0.3s;
 }
 
 .q-card-top {
@@ -310,7 +355,7 @@ body {
   text-transform: uppercase;
 }
 .badge-qrm { background: var(--blue-light); color: var(--blue); }
-.badge-qru { background: #fef9ec; color: #92650a; border: 1px solid #f3d78c; }
+.badge-qru { background: var(--amber-light); color: var(--amber); border: 1px solid rgba(210, 153, 34, 0.3); }
 
 .bareme-hint {
   font-size: 0.75rem;
@@ -387,10 +432,10 @@ body {
   text-align: center;
 }
 .q-result.show { display: block; }
-.res-perfect { background: var(--green-light); color: var(--green); border: 1px solid #a7f3d0; }
-.res-good { background: var(--blue-light); color: var(--blue); border: 1px solid #bfdbfe; }
-.res-partial { background: var(--amber-light); color: var(--amber); border: 1px solid #fde68a; }
-.res-zero { background: var(--red-light); color: var(--red); border: 1px solid #fecaca; }
+.res-perfect { background: var(--green-light); color: var(--green); border: 1px solid var(--green); }
+.res-good { background: var(--blue-light); color: var(--blue); border: 1px solid var(--blue); }
+.res-partial { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber); }
+.res-zero { background: var(--red-light); color: var(--red); border: 1px solid var(--red); }
 
 /* Quiz action bar */
 .quiz-actions {
@@ -414,7 +459,7 @@ body {
 .btn-validate {
   margin-left: auto;
   background: var(--blue);
-  color: var(--white);
+  color: #fff;
   border: none;
   border-radius: 8px;
   padding: 12px 24px;
@@ -429,7 +474,7 @@ body {
 .btn-next {
   margin-left: auto;
   background: var(--ink);
-  color: var(--white);
+  color: var(--surface);
   border: none;
   border-radius: 8px;
   padding: 12px 24px;
@@ -451,8 +496,8 @@ body {
 }
 
 .results-hero-card {
-  background: var(--ink);
-  color: var(--white);
+  background: #0d1117; /* Fixé en noir */
+  color: #ffffff;
   border-radius: var(--r);
   padding: 48px 40px;
   text-align: center;
@@ -530,6 +575,7 @@ body {
   display: flex;
   align-items: center;
   gap: 14px;
+  transition: background 0.3s, border-color 0.3s;
 }
 .recap-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .recap-n {
@@ -555,6 +601,33 @@ body {
   font-size: 0.95rem;
   min-width: 54px;
   text-align: right;
+}
+
+/* Erreurs spécifiques recap */
+.error-item-box {
+  background: var(--red-light);
+  border-left: 3px solid var(--red);
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+.error-item-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--red);
+  margin-bottom: 4px;
+}
+.error-item-text {
+  font-size: 0.92rem;
+  color: var(--ink);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+.error-item-expl {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.5;
 }
 
 .results-actions {
@@ -585,7 +658,7 @@ body {
   font-weight: 700;
   font-size: 0.88rem;
   cursor: pointer;
-  color: var(--white);
+  color: #fff;
   transition: background 0.2s;
 }
 .btn-solid:hover { background: var(--blue-dark); }
@@ -601,19 +674,23 @@ body {
 </head>
 <body>
 
-<!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-logo">Colle<span>App</span></div>
   <div class="topbar-sep"></div>
   <div class="topbar-sub" id="topbar-sub">Plateforme de révisions PASS / LAS</div>
   <div class="topbar-right">
+    <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" title="Basculer le thème">
+      <svg id="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+      </svg>
+    </button>
+    
     <div class="score-pill" id="topbar-score" style="display:none">
       <span id="tb-score">0</span> / <span id="tb-max">0</span> pts
     </div>
   </div>
 </div>
 
-<!-- ═══════════ PAGE HOME ═══════════ -->
 <div id="page-home" class="page active">
   <div class="home-wrap">
 
@@ -624,7 +701,6 @@ body {
 
     <div class="steps">
 
-      <!-- Step 1 -->
       <div class="step-card">
         <div class="step-header">
           <span class="step-num">Étape 01</span>
@@ -645,7 +721,6 @@ body {
         </div>
       </div>
 
-      <!-- Step 2 -->
       <div class="step-card">
         <div class="step-header">
           <span class="step-num">Étape 02</span>
@@ -667,7 +742,6 @@ body {
         <div class="error-msg" id="err-msg"></div>
       </div>
 
-      <!-- Step 3 -->
       <div class="step-card">
         <div class="step-header">
           <span class="step-num">Étape 03</span>
@@ -679,7 +753,6 @@ body {
         </button>
       </div>
 
-      <!-- Format reference -->
       <div class="step-card">
         <div class="step-header">
           <span class="step-num">Référence</span>
@@ -696,7 +769,7 @@ body {
       "propositions": [
         { "id": "A", "text": "Les disques intervertébraux…", "correct": false, "explanation": "Explication pédagogique…" },
         { "id": "B", "text": "Chez le quadrupède…",          "correct": true,  "explanation": "Explication pédagogique…" },
-        { "id": "C", "text": "Un métamère est composé…",     "correct": true,  "explanation": "Explication pédagogique…" },
+        { "id": "C", "text": "Un métamère est composé…",      "correct": true,  "explanation": "Explication pédagogique…" },
         { "id": "D", "text": "La moelle épinière…",          "correct": false, "explanation": "Explication pédagogique…" },
         { "id": "E", "text": "Les fibres optiques…",         "correct": false, "explanation": "Explication pédagogique…" }
       ]
@@ -725,7 +798,6 @@ body {
   </div>
 </div>
 
-<!-- ═══════════ PAGE QUIZ ═══════════ -->
 <div id="page-quiz" class="page">
   <div class="quiz-wrap">
     <div class="quiz-toprow">
@@ -737,7 +809,7 @@ body {
     </div>
     <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
 
-    <div class="q-card" id="q-card"><!-- injected --></div>
+    <div class="q-card" id="q-card"></div>
 
     <div class="quiz-actions">
       <button class="btn-quit" onclick="quitQuiz()">← Quitter</button>
@@ -747,14 +819,16 @@ body {
   </div>
 </div>
 
-<!-- ═══════════ PAGE RESULTS ═══════════ -->
 <div id="page-results" class="page">
   <div class="results-wrap">
-    <div class="results-hero-card" id="results-hero"><!-- injected --></div>
+    <div class="results-hero-card" id="results-hero"></div>
     <div class="recap-header">
       <span>Détail question par question</span>
     </div>
-    <div id="recap-list"><!-- injected --></div>
+    <div id="recap-list"></div>
+    
+    <div id="errors-recap" style="display:none; margin-top:32px;"></div>
+
     <div class="results-actions">
       <button class="btn-ghost" onclick="goHome()">🏠 Nouvelle colle</button>
       <button class="btn-solid" onclick="restartQuiz()">↺ Recommencer cette colle</button>
@@ -763,6 +837,18 @@ body {
 </div>
 
 <script>
+/* ─────────────────────────────────────────────
+   THEME TOGGLE
+───────────────────────────────────────────── */
+function toggleTheme() {
+  const doc = document.documentElement;
+  const isDark = doc.getAttribute('data-theme') === 'dark';
+  doc.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('theme-icon').innerHTML = isDark
+    ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>'
+    : '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+}
+
 /* ─────────────────────────────────────────────
    PROMPT
 ───────────────────────────────────────────── */
@@ -859,9 +945,10 @@ Génère maintenant la colle à partir du cours fourni.`;
    STATE
 ───────────────────────────────────────────── */
 let quiz = null;
-let idx   = 0;
+let idx    = 0;
 let scores = [];
-let done  = false;
+let done   = false;
+let mistakesLog = []; // Historique des erreurs
 
 /* ─────────────────────────────────────────────
    NAVIGATION
@@ -941,7 +1028,7 @@ function startQuiz() {
   }
 
   quiz = data;
-  idx = 0; scores = []; done = false;
+  idx = 0; scores = []; done = false; mistakesLog = [];
 
   document.getElementById('qz-title').textContent = quiz.title || 'Colle';
   document.getElementById('qz-tot').textContent   = quiz.questions.length;
@@ -953,7 +1040,7 @@ function startQuiz() {
 }
 
 function restartQuiz() {
-  idx = 0; scores = []; done = false;
+  idx = 0; scores = []; done = false; mistakesLog = [];
   updateScoreDisplay();
   showPage('quiz');
   renderQ();
@@ -1036,6 +1123,7 @@ function validateQuestion() {
   const q     = quiz.questions[idx];
   const isQRM = q.type !== 'QRU';
   let   qScore = 0;
+  let   qMistakes = []; // Stocke les erreurs de la question courante
 
   if (isQRM) {
     let correct = 0;
@@ -1043,6 +1131,15 @@ function validateQuestion() {
       const checked  = document.getElementById('pi-' + p.id)?.checked || false;
       const rightCall = checked === p.correct;
       if (rightCall) correct++;
+      else {
+        // Enregistrement de l'erreur pour le récap final
+        qMistakes.push({
+          letter: p.id,
+          text: p.text,
+          expl: p.explanation || "Aucune explication fournie.",
+          type: checked ? "Coché à tort" : "Oublié"
+        });
+      }
 
       const div  = document.getElementById('pd-' + p.id);
       const icon = document.getElementById('picon-' + p.id);
@@ -1083,8 +1180,17 @@ function validateQuestion() {
       const expl = document.getElementById('pe-' + p.id);
       div.classList.remove('sel');
       expl.classList.add('show');
+      
       if (p.correct)           { div.classList.add('correct'); icon.textContent = '✅'; }
       else if (p.id === selId) { div.classList.add('wrong');   icon.textContent = '❌'; }
+
+      // Enregistrement des erreurs
+      if (p.id === selId && !p.correct) {
+        qMistakes.push({ letter: p.id, text: p.text, expl: p.explanation || "Aucune explication", type: "Mauvaise réponse" });
+      }
+      if (p.correct && p.id !== selId) {
+        qMistakes.push({ letter: p.id, text: p.text, expl: p.explanation || "Aucune explication", type: "Bonne réponse attendue" });
+      }
     });
 
     const chosen = q.propositions.find(p => p.id === selId);
@@ -1097,6 +1203,11 @@ function validateQuestion() {
       r.className = 'q-result show res-zero';
       r.textContent = selId ? '❌ Mauvaise réponse → 0 point' : '❌ Aucune réponse sélectionnée → 0 point';
     }
+  }
+
+  // Stocke les erreurs si présentes pour cette question
+  if (qMistakes.length > 0) {
+    mistakesLog.push({ qIdx: idx + 1, qText: q.question, mistakes: qMistakes });
   }
 
   scores.push(qScore);
@@ -1184,6 +1295,40 @@ function showResults() {
         <div class="recap-score" style="${scoreColor}">${fmt(s)} / 1</div>
       </div>`;
   });
+
+  // Affichage du récapitulatif détaillé des erreurs
+  const errContainer = document.getElementById('errors-recap');
+  if (mistakesLog.length > 0) {
+    let errHtml = `
+      <div class="recap-header" style="color:var(--red);">
+        <span>🚨 Erreurs à revoir</span>
+      </div>`;
+      
+    mistakesLog.forEach(m => {
+      errHtml += `
+        <div class="step-card" style="margin-bottom:16px; padding:24px;">
+          <div style="font-weight:700; font-size:1rem; margin-bottom:14px; color:var(--ink);">
+            Q${m.qIdx}. ${escHtml(m.qText)}
+          </div>`;
+          
+      m.mistakes.forEach(err => {
+        errHtml += `
+          <div class="error-item-box">
+            <div class="error-item-title">Item ${err.letter} (${err.type})</div>
+            <div class="error-item-text">${escHtml(err.text)}</div>
+            <div class="error-item-expl"><strong>Correction :</strong> ${escHtml(err.expl)}</div>
+          </div>`;
+      });
+      
+      errHtml += `</div>`;
+    });
+    
+    errContainer.innerHTML = errHtml;
+    errContainer.style.display = 'block';
+  } else {
+    errContainer.style.display = 'none';
+    errContainer.innerHTML = '';
+  }
 }
 
 /* ─────────────────────────────────────────────
